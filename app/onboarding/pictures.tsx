@@ -5,42 +5,13 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import LocationSearchModal from '../../components/LocationSearchModal';
 
-interface LocationData {
-  name: string;
-  region: string;
-  country: string;
-  distance: string;
-}
+export default function PicturesScreen() {
+  const [pictures, setPictures] = useState<string[]>([]);
 
-export default function LocationScreen() {
-  const [location, setLocation] = useState('');
-  const [locationData, setLocationData] = useState<LocationData | null>(null);
-  const [isLocationValid, setIsLocationValid] = useState(false);
-  const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const handleLocationFocus = () => {
-    setIsSearchModalVisible(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsSearchModalVisible(false);
-    setSearchQuery('');
-  };
-
-  const handleSelectLocation = (selectedLocation: LocationData) => {
-    setLocation(selectedLocation.name);
-    setLocationData(selectedLocation);
-    setIsLocationValid(true);
-    setIsSearchModalVisible(false);
-  };
-
-  const clearLocation = () => {
-    setLocation('');
-    setLocationData(null);
-    setIsLocationValid(false);
+  const handleAddPicture = (index: number) => {
+    // In a real implementation, this would open the image picker
+    console.log(`Adding picture at index ${index}`);
   };
 
   const goBack = () => {
@@ -49,13 +20,12 @@ export default function LocationScreen() {
 
   const handleContinue = async () => {
     try {
-      await AsyncStorage.setItem('userLocation', location);
-      if (locationData) {
-        await AsyncStorage.setItem('userLocationData', JSON.stringify(locationData));
+      if (pictures.length > 0) {
+        await AsyncStorage.setItem('userPictures', JSON.stringify(pictures));
       }
-      router.push('/onboarding/pictures'); // Navigate to the pictures screen
+      router.push('/onboarding/about-you'); // Navigate to the about-you screen
     } catch (error) {
-      console.error('Error saving location:', error);
+      console.error('Error saving pictures:', error);
     }
   };
 
@@ -87,46 +57,60 @@ export default function LocationScreen() {
       {/* Main Content */}
       <View style={styles.content}>
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>What's your location?</Text>
-          <Text style={styles.subtitle}>Share your location to find nearby musicians and events</Text>
+          <Text style={styles.title}>Pictures</Text>
+          <Text style={styles.subtitle}>Add pictures to stand out in the community</Text>
         </View>
         
-        <View style={styles.locationContainer}>
-          <View style={styles.locationInputRow}>
-            <View style={styles.flagContainer}>
-              <Ionicons name="flag" size={32} color="#FFFFFF" />
+        <View style={styles.picturesContainer}>
+          {/* First Row */}
+          <View style={styles.picturesRow}>
+            {/* Picture Box 1 */}
+            <View style={styles.pictureOuterBox}>
+              <Pressable 
+                style={styles.pictureInnerBox}
+                onPress={() => handleAddPicture(0)}
+              >
+                <Ionicons name="add" size={88} color="rgba(255, 255, 255, 0.48)" />
+              </Pressable>
             </View>
             
-            <Pressable 
-              style={styles.inputContainer}
-              onPress={handleLocationFocus}
-            >
-              <Ionicons name="location-outline" size={16} color="rgba(255, 255, 255, 0.48)" />
-              <Text 
-                style={[
-                  styles.inputText, 
-                  !location && styles.placeholderText
-                ]}
+            {/* Picture Box 2 */}
+            <View style={styles.pictureOuterBox}>
+              <Pressable 
+                style={styles.pictureInnerBox}
+                onPress={() => handleAddPicture(1)}
               >
-                {location || "E.g. Los Angeles"}
-              </Text>
-              {location.length > 0 && (
-                <TouchableOpacity onPress={clearLocation}>
-                  <Ionicons name="close-circle" size={16} color="rgba(255, 255, 255, 0.48)" />
-                </TouchableOpacity>
-              )}
-              {isLocationValid && (
-                <Ionicons name="checkmark-circle" size={16} color="#64CD75" />
-              )}
-            </Pressable>
+                <Ionicons name="add" size={88} color="rgba(255, 255, 255, 0.48)" />
+              </Pressable>
+            </View>
+          </View>
+          
+          {/* Second Row */}
+          <View style={styles.picturesRow}>
+            {/* Picture Box 3 */}
+            <View style={styles.pictureOuterBox}>
+              <Pressable 
+                style={styles.pictureInnerBox}
+                onPress={() => handleAddPicture(2)}
+              >
+                <Ionicons name="add" size={88} color="rgba(255, 255, 255, 0.48)" />
+              </Pressable>
+            </View>
+            
+            {/* Picture Box 4 */}
+            <View style={styles.pictureOuterBox}>
+              <Pressable 
+                style={styles.pictureInnerBox}
+                onPress={() => handleAddPicture(3)}
+              >
+                <Ionicons name="add" size={88} color="rgba(255, 255, 255, 0.48)" />
+              </Pressable>
+            </View>
           </View>
           
           <View style={styles.infoRow}>
-            <Ionicons name="information-circle-outline" size={12} color="#828282" />
-            <Text style={styles.infoText}>
-              Your location helps us connect you with local musicians and music events. 
-              It will only be shown to other users at a city level.
-            </Text>
+            <Ionicons name="information-circle-outline" size={12} color="rgba(255, 255, 255, 0.64)" />
+            <Text style={styles.infoText}>.jpg; .png format only. 1:1 ratio preferrably.</Text>
           </View>
         </View>
       </View>
@@ -144,10 +128,9 @@ export default function LocationScreen() {
           <TouchableOpacity
             style={[
               styles.continueButton,
-              isLocationValid ? styles.continueButtonActive : {}
+              styles.continueButtonActive
             ]}
             onPress={handleContinue}
-            disabled={!isLocationValid}
           >
             <Text style={styles.continueText}>Continue</Text>
           </TouchableOpacity>
@@ -158,15 +141,6 @@ export default function LocationScreen() {
           <Text style={styles.tosText}>By pressing "Continue" you agree with BandMate TOS.</Text>
         </View>
       </LinearGradient>
-
-      {/* Location Search Modal */}
-      <LocationSearchModal
-        visible={isSearchModalVisible}
-        searchQuery={searchQuery}
-        onChangeText={setSearchQuery}
-        onClose={handleCloseModal}
-        onSelectLocation={handleSelectLocation}
-      />
     </View>
   );
 }
@@ -254,7 +228,6 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     width: '100%',
-    marginBottom: 4,
     gap: 12,
   },
   title: {
@@ -272,57 +245,38 @@ const styles = StyleSheet.create({
     letterSpacing: -0.03,
     width: '100%',
   },
-  locationContainer: {
+  picturesContainer: {
     width: '100%',
     flexDirection: 'column',
     gap: 8,
   },
-  locationInputRow: {
+  picturesRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
     width: '100%',
-  },
-  flagContainer: {
-    width: 48,
-    height: 48,
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
-    opacity: 0.78,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  inputContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    height: 48,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
     gap: 8,
   },
-  inputText: {
+  pictureOuterBox: {
     flex: 1,
-    fontFamily: 'Poppins',
-    fontWeight: '500',
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#FFFFFF',
-    letterSpacing: -0.03,
+    height: 171.5,
+    padding: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    borderRadius: 12,
   },
-  placeholderText: {
-    color: 'rgba(255, 255, 255, 0.48)',
+  pictureInnerBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 8,
   },
   infoRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 4,
     width: '100%',
+    marginTop: 8,
   },
   infoText: {
-    flex: 1,
     fontFamily: 'Poppins',
     fontSize: 12,
     lineHeight: 18,
