@@ -1,111 +1,128 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function GenderScreen() {
-  const [gender, setGender] = useState('');
+export default function BandMembersScreen() {
+  const [memberCount, setMemberCount] = useState('');
   const [isValid, setIsValid] = useState(false);
 
-  const handleGenderChange = (text: string) => {
-    setGender(text);
-    setIsValid(text.trim().length > 0);
+  const handleMemberCountChange = (text: string) => {
+    setMemberCount(text);
+    // Simple validation to check if the input is a number
+    const numericValue = parseInt(text);
+    setIsValid(!isNaN(numericValue) && numericValue > 0);
   };
 
   const handleContinue = async () => {
+    Keyboard.dismiss();
     if (isValid) {
       try {
-        // Store the gender
-        await AsyncStorage.setItem('gender', gender);
-        // Navigate to the instruments screen
-        router.push('/onboarding/instruments');
+        // Store the band member count
+        await AsyncStorage.setItem('bandMemberCount', memberCount);
+        // Navigate to the age range screen
+        router.push('/onboarding/age-range');
       } catch (error) {
-        console.error('Error saving gender:', error);
+        console.error('Error saving band member count:', error);
       }
     }
   };
 
   const goBack = () => {
+    Keyboard.dismiss();
     router.back();
   };
 
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+  };
+
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.headerTextContainer}>
-            <View style={styles.headerTitleRow}>
-              <Text style={styles.headerTitle}>Registration</Text>
-              <Text style={styles.stepIndicator}>6/8</Text>
-            </View>
-            <Text style={styles.headerSubtitle}>Email</Text>
-          </View>
-          <View style={styles.infoButton}>
-            <Ionicons name="information-circle-outline" size={24} color="#FFFFFF" />
-          </View>
-        </View>
-        <View style={styles.progressBarContainer}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressIndicator, { width: '75%' }]} />
-          </View>
-        </View>
-      </View>
-      
-      {/* Main Content */}
-      <View style={styles.content}>
-        <Text style={styles.title}>What's your gender?</Text>
+    <TouchableWithoutFeedback onPress={dismissKeyboard}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <StatusBar style="light" />
         
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="E.g. Male"
-            placeholderTextColor="rgba(255, 255, 255, 0.48)"
-            value={gender}
-            onChangeText={handleGenderChange}
-          />
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerTextContainer}>
+              <View style={styles.headerTitleRow}>
+                <Text style={styles.headerTitle}>Registration</Text>
+                <Text style={styles.stepIndicator}>5/8</Text>
+              </View>
+              <Text style={styles.headerSubtitle}>Email</Text>
+            </View>
+            <View style={styles.infoButton}>
+              <Ionicons name="information-circle-outline" size={24} color="#FFFFFF" />
+            </View>
+          </View>
+          <View style={styles.progressBarContainer}>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressIndicator, { width: '62.5%' }]} />
+            </View>
+          </View>
+        </View>
+        
+        {/* Main Content */}
+        <View style={styles.content}>
+          <Text style={styles.title}>How many band members do you have?</Text>
           
-          <View style={styles.warningContainer}>
-            <Ionicons name="information-circle-outline" size={12} color="#828282" />
-            <Text style={styles.warningText}>
-              Inappropriate names are forbidden.
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="E.g. 2 members"
+              placeholderTextColor="rgba(255, 255, 255, 0.48)"
+              value={memberCount}
+              onChangeText={handleMemberCountChange}
+              keyboardType="numeric"
+              returnKeyType="done"
+              onSubmitEditing={dismissKeyboard}
+              blurOnSubmit={true}
+            />
+            
+            <View style={styles.warningContainer}>
+              <Ionicons name="information-circle-outline" size={12} color="#828282" />
+              <Text style={styles.warningText}>
+                Please only mention fixed members.
+              </Text>
+            </View>
+          </View>
+        </View>
+        
+        {/* Footer */}
+        <LinearGradient
+          colors={['rgba(18, 18, 18, 0)', 'rgba(18, 18, 18, 0.16)']}
+          style={styles.footer}
+        >
+          <View style={styles.footerContent}>
+            <TouchableOpacity style={styles.backButton} onPress={goBack}>
+              <Ionicons name="chevron-back" size={27} color="#FFFFFF" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.continueButton, !isValid && styles.continueButtonDisabled]}
+              onPress={handleContinue}
+              disabled={!isValid}
+            >
+              <Text style={styles.continueButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.tosContainer}>
+            <Ionicons name="information-circle-outline" size={12} color="rgba(255, 255, 255, 0.48)" />
+            <Text style={styles.tosText}>
+              By pressing "Continue" you agree with <Text style={styles.tosHighlight}>BandMate TOS</Text>.
             </Text>
           </View>
-        </View>
-      </View>
-      
-      {/* Footer */}
-      <LinearGradient
-        colors={['rgba(18, 18, 18, 0)', 'rgba(18, 18, 18, 0.16)']}
-        style={styles.footer}
-      >
-        <View style={styles.footerContent}>
-          <TouchableOpacity style={styles.backButton} onPress={goBack}>
-            <Ionicons name="chevron-back" size={27} color="#FFFFFF" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.continueButton, !isValid && styles.continueButtonDisabled]}
-            onPress={handleContinue}
-            disabled={!isValid}
-          >
-            <Text style={styles.continueButtonText}>Continue</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.tosContainer}>
-          <Ionicons name="information-circle-outline" size={12} color="rgba(255, 255, 255, 0.48)" />
-          <Text style={styles.tosText}>
-            By pressing "Continue" you agree with <Text style={styles.tosHighlight}>BandMate TOS</Text>.
-          </Text>
-        </View>
-      </LinearGradient>
-    </View>
+        </LinearGradient>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 

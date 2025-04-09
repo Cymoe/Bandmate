@@ -5,27 +5,24 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Slider from '@react-native-community/slider';
 
-export default function UserTypeScreen() {
-  const [selectedType, setSelectedType] = useState<string | null>(null);
+export default function AgeRangeScreen() {
+  const [ageRange, setAgeRange] = useState(50); // Default value (middle of the range)
+  
+  // Convert slider value (0-100) to age (18-99)
+  const getAgeFromSliderValue = (value: number) => {
+    return Math.round(18 + (value / 100) * (99 - 18));
+  };
 
   const handleContinue = async () => {
-    if (selectedType) {
-      try {
-        // Store the user type selection
-        await AsyncStorage.setItem('userType', selectedType);
-        
-        // Navigate based on user type
-        if (selectedType === 'solo') {
-          // Solo artist flow
-          router.push('/onboarding/full-name');
-        } else if (selectedType === 'band') {
-          // Band flow
-          router.push('/onboarding/band-name');
-        }
-      } catch (error) {
-        console.error('Error saving user type:', error);
-      }
+    try {
+      // Store the age range
+      await AsyncStorage.setItem('ageRange', getAgeFromSliderValue(ageRange).toString());
+      // Navigate to the instruments screen
+      router.push('/onboarding/instruments');
+    } catch (error) {
+      console.error('Error saving age range:', error);
     }
   };
 
@@ -43,7 +40,7 @@ export default function UserTypeScreen() {
           <View style={styles.headerTextContainer}>
             <View style={styles.headerTitleRow}>
               <Text style={styles.headerTitle}>Registration</Text>
-              <Text style={styles.stepIndicator}>3/8</Text>
+              <Text style={styles.stepIndicator}>6/8</Text>
             </View>
             <Text style={styles.headerSubtitle}>Email</Text>
           </View>
@@ -53,39 +50,38 @@ export default function UserTypeScreen() {
         </View>
         <View style={styles.progressBarContainer}>
           <View style={styles.progressBar}>
-            <View style={styles.progressIndicator} />
+            <View style={[styles.progressIndicator, { width: '75%' }]} />
           </View>
         </View>
       </View>
       
       {/* Main Content */}
       <View style={styles.content}>
-        <Text style={styles.title}>I am a</Text>
+        <Text style={styles.title}>Age range</Text>
         
-        <View style={styles.cardContainer}>
-          <TouchableOpacity 
-            style={[
-              styles.card, 
-              styles.soloCard,
-              selectedType === 'solo' && styles.selectedCard
-            ]}
-            onPress={() => setSelectedType('solo')}
-          >
-            <Text style={styles.cardTitle}>Solo Artist</Text>
-            <View style={[styles.cardImage, styles.soloCardImage]} />
-          </TouchableOpacity>
+        <View style={styles.sliderContainer}>
+          <Slider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={100}
+            value={ageRange}
+            onValueChange={setAgeRange}
+            minimumTrackTintColor="#FFFFFF"
+            maximumTrackTintColor="rgba(255, 255, 255, 0.2)"
+            thumbTintColor="#FFFFFF"
+          />
           
-          <TouchableOpacity 
-            style={[
-              styles.card, 
-              styles.bandCard,
-              selectedType === 'band' && styles.selectedCard
-            ]}
-            onPress={() => setSelectedType('band')}
-          >
-            <Text style={styles.cardTitle}>Band</Text>
-            <View style={[styles.cardImage, styles.bandCardImage]} />
-          </TouchableOpacity>
+          <View style={styles.sliderLabels}>
+            <Text style={styles.sliderLabel}>18 yrs</Text>
+            <Text style={styles.sliderLabel}>99 yrs</Text>
+          </View>
+          
+          <View style={styles.warningContainer}>
+            <Ionicons name="information-circle-outline" size={12} color="#828282" />
+            <Text style={styles.warningText}>
+              Only permanent members.
+            </Text>
+          </View>
         </View>
       </View>
       
@@ -100,12 +96,18 @@ export default function UserTypeScreen() {
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.continueButton, !selectedType && styles.continueButtonDisabled]}
+            style={styles.continueButton}
             onPress={handleContinue}
-            disabled={!selectedType}
           >
             <Text style={styles.continueButtonText}>Continue</Text>
           </TouchableOpacity>
+        </View>
+        
+        <View style={styles.tosContainer}>
+          <Ionicons name="information-circle-outline" size={12} color="rgba(255, 255, 255, 0.48)" />
+          <Text style={styles.tosText}>
+            By pressing "Continue" you agree with <Text style={styles.tosHighlight}>BandMate TOS</Text>.
+          </Text>
         </View>
       </LinearGradient>
     </View>
@@ -118,12 +120,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#121212',
   },
   header: {
-    width: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     paddingTop: 48,
     paddingHorizontal: 12,
     paddingBottom: 12,
     backgroundColor: 'rgba(18, 18, 18, 0.64)',
     backdropFilter: 'blur(16px)',
+    zIndex: 1,
   },
   headerContent: {
     flexDirection: 'row',
@@ -136,31 +142,25 @@ const styles = StyleSheet.create({
   headerTitleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    alignItems: 'center',
   },
   headerTitle: {
     fontFamily: 'Poppins',
     fontWeight: '600',
     fontSize: 20,
-    lineHeight: 22,
     color: '#FFFFFF',
-    textAlign: 'center',
   },
   stepIndicator: {
     fontFamily: 'Poppins',
     fontWeight: '600',
     fontSize: 16,
-    lineHeight: 22,
     color: '#FFFFFF',
-    textAlign: 'center',
   },
   headerSubtitle: {
     fontFamily: 'Poppins',
-    fontWeight: '400',
     fontSize: 14,
-    lineHeight: 22,
     color: 'rgba(255, 255, 255, 0.64)',
+    marginTop: 4,
   },
   infoButton: {
     width: 44,
@@ -172,121 +172,111 @@ const styles = StyleSheet.create({
   },
   progressBarContainer: {
     width: '100%',
+    height: 4,
   },
   progressBar: {
+    width: '100%',
     height: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 1,
   },
   progressIndicator: {
-    width: '37.5%', // 3/8 of the progress (third screen)
     height: 4,
     backgroundColor: '#FFFFFF',
     borderRadius: 1,
   },
   content: {
     flex: 1,
+    paddingTop: 136,
     paddingHorizontal: 12,
-    paddingTop: 24,
-    paddingBottom: 24,
   },
   title: {
     fontFamily: 'Abril Fatface',
-    fontWeight: '400',
-    fontSize: 32,
-    lineHeight: 38,
+    fontSize: 20,
     color: '#FFFFFF',
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  cardContainer: {
-    gap: 8,
+  sliderContainer: {
+    width: '100%',
   },
-  card: {
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderLabels: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 16,
-    paddingBottom: 0,
-    height: 160,
-    borderRadius: 7.89,
-    position: 'relative',
-    overflow: 'hidden',
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    marginTop: -8,
   },
-  soloCard: {
-    backgroundColor: '#006450', // Green color for solo artist
-  },
-  bandCard: {
-    backgroundColor: '#DC158C', // Pink color for band
-  },
-  selectedCard: {
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  cardTitle: {
+  sliderLabel: {
     fontFamily: 'Poppins',
     fontWeight: '500',
-    fontSize: 28,
-    lineHeight: 37,
-    color: '#FFFFFF',
-    zIndex: 1,
+    fontSize: 12,
+    color: '#DEDEDE',
+    opacity: 0.6,
   },
-  cardImage: {
-    position: 'absolute',
-    width: 144,
-    height: 144,
-    right: -80,
-    bottom: 24,
-    borderRadius: 7.89,
-    transform: [{ rotate: '25deg' }],
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 19.72,
+  warningContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 4,
   },
-  soloCardImage: {
-    backgroundColor: 'rgba(0, 100, 80, 0.7)', // Darker shade of the solo card color
-  },
-  bandCardImage: {
-    backgroundColor: 'rgba(220, 21, 140, 0.7)', // Darker shade of the band card color
+  warningText: {
+    fontFamily: 'Poppins',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.64)',
+    flex: 1,
   },
   footer: {
-    width: '100%',
-    paddingHorizontal: 12,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     paddingTop: 12,
+    paddingHorizontal: 12,
     paddingBottom: 34,
-    backdropFilter: 'blur(16px)',
   },
   footerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+    gap: 8,
   },
   backButton: {
     width: 48,
     height: 48,
-    borderRadius: 85.7143,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 85.7143,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
   },
   continueButton: {
     flex: 1,
     height: 48,
-    borderRadius: 85.7143,
     backgroundColor: '#FF4B4B',
+    borderRadius: 85.7143,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  continueButtonDisabled: {
-    opacity: 0.5,
   },
   continueButtonText: {
     fontFamily: 'Poppins',
     fontWeight: '500',
-    fontSize: 17.1429,
-    lineHeight: 19,
+    fontSize: 17,
     color: '#121212',
+  },
+  tosContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 4,
+  },
+  tosText: {
+    fontFamily: 'Poppins',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.48)',
     textAlign: 'center',
+  },
+  tosHighlight: {
+    color: '#FFFFFF',
   },
 });

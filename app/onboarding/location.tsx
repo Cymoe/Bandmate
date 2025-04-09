@@ -1,35 +1,36 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function GenderScreen() {
-  const [gender, setGender] = useState('');
-  const [isValid, setIsValid] = useState(false);
+export default function LocationScreen() {
+  const [location, setLocation] = useState('');
+  const [isLocationValid, setIsLocationValid] = useState(false);
 
-  const handleGenderChange = (text: string) => {
-    setGender(text);
-    setIsValid(text.trim().length > 0);
+  const handleLocationChange = (text: string) => {
+    setLocation(text);
+    setIsLocationValid(text.trim().length > 0);
   };
 
-  const handleContinue = async () => {
-    if (isValid) {
-      try {
-        // Store the gender
-        await AsyncStorage.setItem('gender', gender);
-        // Navigate to the instruments screen
-        router.push('/onboarding/instruments');
-      } catch (error) {
-        console.error('Error saving gender:', error);
-      }
-    }
+  const clearLocation = () => {
+    setLocation('');
+    setIsLocationValid(false);
   };
 
   const goBack = () => {
     router.back();
+  };
+
+  const handleContinue = async () => {
+    try {
+      await AsyncStorage.setItem('userLocation', location);
+      router.push('/'); // Navigate to the main app
+    } catch (error) {
+      console.error('Error saving location:', error);
+    }
   };
 
   return (
@@ -42,9 +43,9 @@ export default function GenderScreen() {
           <View style={styles.headerTextContainer}>
             <View style={styles.headerTitleRow}>
               <Text style={styles.headerTitle}>Registration</Text>
-              <Text style={styles.stepIndicator}>6/8</Text>
+              <Text style={styles.stepIndicator}>2/8</Text>
             </View>
-            <Text style={styles.headerSubtitle}>Email</Text>
+            <Text style={styles.headerSubtitle}>Location</Text>
           </View>
           <View style={styles.infoButton}>
             <Ionicons name="information-circle-outline" size={24} color="#FFFFFF" />
@@ -52,28 +53,49 @@ export default function GenderScreen() {
         </View>
         <View style={styles.progressBarContainer}>
           <View style={styles.progressBar}>
-            <View style={[styles.progressIndicator, { width: '75%' }]} />
+            <View style={[styles.progressIndicator, { width: '25%' }]} />
           </View>
         </View>
       </View>
       
       {/* Main Content */}
       <View style={styles.content}>
-        <Text style={styles.title}>What's your gender?</Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>What's your location?</Text>
+          <Text style={styles.subtitle}>Share your location to find nearby musicians and events</Text>
+        </View>
         
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="E.g. Male"
-            placeholderTextColor="rgba(255, 255, 255, 0.48)"
-            value={gender}
-            onChangeText={handleGenderChange}
-          />
+        <View style={styles.locationContainer}>
+          <View style={styles.locationInputRow}>
+            <View style={styles.flagContainer}>
+              <Ionicons name="flag" size={32} color="#FFFFFF" />
+            </View>
+            
+            <View style={styles.inputContainer}>
+              <Ionicons name="location-outline" size={16} color="rgba(255, 255, 255, 0.48)" />
+              <TextInput
+                style={styles.input}
+                placeholder="E.g. Los Angeles"
+                placeholderTextColor="rgba(255, 255, 255, 0.48)"
+                value={location}
+                onChangeText={handleLocationChange}
+              />
+              {location.length > 0 && (
+                <TouchableOpacity onPress={clearLocation}>
+                  <Ionicons name="close-circle" size={16} color="rgba(255, 255, 255, 0.48)" />
+                </TouchableOpacity>
+              )}
+              {isLocationValid && (
+                <Ionicons name="checkmark-circle" size={16} color="#64CD75" />
+              )}
+            </View>
+          </View>
           
-          <View style={styles.warningContainer}>
+          <View style={styles.infoRow}>
             <Ionicons name="information-circle-outline" size={12} color="#828282" />
-            <Text style={styles.warningText}>
-              Inappropriate names are forbidden.
+            <Text style={styles.infoText}>
+              Your location helps us connect you with local musicians and music events. 
+              It will only be shown to other users at a city level.
             </Text>
           </View>
         </View>
@@ -89,20 +111,21 @@ export default function GenderScreen() {
             <Ionicons name="chevron-back" size={27} color="#FFFFFF" />
           </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={[styles.continueButton, !isValid && styles.continueButtonDisabled]}
+          <TouchableOpacity
+            style={[
+              styles.continueButton,
+              isLocationValid ? styles.continueButtonActive : {}
+            ]}
             onPress={handleContinue}
-            disabled={!isValid}
+            disabled={!isLocationValid}
           >
-            <Text style={styles.continueButtonText}>Continue</Text>
+            <Text style={styles.continueText}>Continue</Text>
           </TouchableOpacity>
         </View>
         
         <View style={styles.tosContainer}>
           <Ionicons name="information-circle-outline" size={12} color="rgba(255, 255, 255, 0.48)" />
-          <Text style={styles.tosText}>
-            By pressing "Continue" you agree with <Text style={styles.tosHighlight}>BandMate TOS</Text>.
-          </Text>
+          <Text style={styles.tosText}>By pressing "Continue" you agree with BandMate TOS.</Text>
         </View>
       </LinearGradient>
     </View>
@@ -115,16 +138,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#121212',
   },
   header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
     paddingTop: 48,
     paddingHorizontal: 12,
     paddingBottom: 12,
     backgroundColor: 'rgba(18, 18, 18, 0.64)',
     backdropFilter: 'blur(16px)',
-    zIndex: 1,
   },
   headerContent: {
     flexDirection: 'row',
@@ -144,18 +162,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 20,
     color: '#FFFFFF',
+    lineHeight: 22,
   },
   stepIndicator: {
     fontFamily: 'Poppins',
     fontWeight: '600',
     fontSize: 16,
     color: '#FFFFFF',
+    lineHeight: 22,
   },
   headerSubtitle: {
     fontFamily: 'Poppins',
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.64)',
-    marginTop: 4,
+    lineHeight: 22,
   },
   infoButton: {
     width: 44,
@@ -185,50 +205,86 @@ const styles = StyleSheet.create({
     paddingTop: 136,
     paddingHorizontal: 12,
   },
+  titleContainer: {
+    marginBottom: 24,
+  },
   title: {
     fontFamily: 'Abril Fatface',
     fontSize: 20,
+    lineHeight: 27,
     color: '#FFFFFF',
     marginBottom: 12,
   },
-  inputContainer: {
-    width: '100%',
+  subtitle: {
+    fontFamily: 'Poppins',
+    fontSize: 12,
+    lineHeight: 18,
+    color: 'rgba(255, 255, 255, 0.64)',
+    letterSpacing: -0.03,
+  },
+  locationContainer: {
+    flexDirection: 'column',
     gap: 8,
   },
-  input: {
-    width: '100%',
+  locationInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  flagContainer: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    opacity: 0.78,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
     height: 48,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 12,
-    paddingHorizontal: 12,
-    color: '#FFFFFF',
-    fontFamily: 'Poppins',
-    fontSize: 16,
+    gap: 8,
   },
-  warningContainer: {
+  input: {
+    flex: 1,
+    fontFamily: 'Poppins',
+    fontWeight: '500',
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#FFFFFF',
+    letterSpacing: -0.03,
+  },
+  infoRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 4,
   },
-  warningText: {
+  infoText: {
+    flex: 1,
     fontFamily: 'Poppins',
     fontSize: 12,
+    lineHeight: 18,
     color: 'rgba(255, 255, 255, 0.64)',
-    flex: 1,
+    letterSpacing: -0.03,
   },
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    paddingTop: 12,
     paddingHorizontal: 12,
+    paddingTop: 12,
     paddingBottom: 34,
+    gap: 12,
   },
   footerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
     gap: 8,
   },
   backButton: {
@@ -242,18 +298,19 @@ const styles = StyleSheet.create({
   continueButton: {
     flex: 1,
     height: 48,
-    backgroundColor: '#FF4B4B',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 85.7143,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  continueButtonDisabled: {
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+  continueButtonActive: {
+    backgroundColor: '#FF4B4B',
   },
-  continueButtonText: {
+  continueText: {
     fontFamily: 'Poppins',
     fontWeight: '500',
     fontSize: 17,
+    lineHeight: 19,
     color: '#121212',
   },
   tosContainer: {
@@ -265,10 +322,9 @@ const styles = StyleSheet.create({
   tosText: {
     fontFamily: 'Poppins',
     fontSize: 12,
+    lineHeight: 18,
     color: 'rgba(255, 255, 255, 0.48)',
+    letterSpacing: -0.03,
     textAlign: 'center',
-  },
-  tosHighlight: {
-    color: '#FFFFFF',
   },
 });
