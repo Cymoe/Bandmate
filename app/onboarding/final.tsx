@@ -16,7 +16,7 @@ const CheckmarkIcon = () => (
 
 export default function FinalScreen() {
   const handleStartMatching = () => {
-    // Navigate to the location screen
+    // Navigate to the location screen to continue onboarding
     router.push('/onboarding/location');
   };
 

@@ -1,17 +1,42 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SuccessScreen() {
+  // Mark onboarding as complete when this screen is shown
+  useEffect(() => {
+    const markOnboardingComplete = async () => {
+      try {
+        await AsyncStorage.setItem('hasCompletedOnboarding', 'true');
+        console.log('Onboarding marked as complete');
+      } catch (error) {
+        console.error('Error marking onboarding as complete:', error);
+      }
+    };
+    
+    markOnboardingComplete();
+  }, []);
+
   const handleStartMatching = () => {
-    router.push('/onboarding/welcome'); // Navigate to the welcome screen
+    // Navigate to the matching screen
+    router.push('/matching');
+  };
+
+  const goBack = () => {
+    router.back();
   };
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
+      
+      {/* Back button */}
+      <TouchableOpacity style={styles.backButton} onPress={goBack}>
+        <Ionicons name="chevron-back" size={27} color="#FFFFFF" />
+      </TouchableOpacity>
       
       <View style={styles.contentContainer}>
         {/* Logo */}
@@ -48,6 +73,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#121212',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 16,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   contentContainer: {
     flex: 1,

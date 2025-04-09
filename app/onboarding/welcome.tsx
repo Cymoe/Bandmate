@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,8 +28,22 @@ export default function WelcomeScreen() {
     loadUserData();
   }, []);
 
-  const handleContinue = () => {
-    router.push('/'); // Navigate to the main app
+  const goToMatchingScreen = () => {
+    try {
+      console.log("Attempting to navigate to home screen...");
+      // Simple direct navigation to index
+      router.replace('/');
+      
+      // Show an alert to confirm the navigation was triggered
+      Alert.alert(
+        "Navigation",
+        "Navigating to home screen...",
+        [{ text: "OK" }]
+      );
+    } catch (error: any) {
+      console.error("Navigation error:", error);
+      Alert.alert("Navigation Error", error?.message || "Unknown error occurred");
+    }
   };
 
   return (
@@ -64,7 +78,7 @@ export default function WelcomeScreen() {
             
             <TouchableOpacity 
               style={styles.welcomeButton}
-              onPress={handleContinue}
+              onPress={goToMatchingScreen}
             >
               <Text style={styles.welcomeButtonText}>Welcome back!</Text>
             </TouchableOpacity>
