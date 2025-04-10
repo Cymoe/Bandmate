@@ -8,11 +8,9 @@ import {
   StatusBar,
   FlatList,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import TabBar from '../components/navigation/TabBar';
-import { Feather } from '@expo/vector-icons';
 
 export default function EventsScreen() {
   return (
@@ -23,7 +21,6 @@ export default function EventsScreen() {
         style={StyleSheet.absoluteFill}
       />
       
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
@@ -37,7 +34,7 @@ export default function EventsScreen() {
       <View style={styles.content}>
         <View style={styles.comingSoonContainer}>
           <Image 
-            source={require('../assets/images/avatar.png')} 
+            source={require('../../assets/images/avatar.png')} 
             style={styles.comingSoonImage}
           />
           
@@ -50,28 +47,28 @@ export default function EventsScreen() {
           
           <View style={styles.featureList}>
             <View style={styles.featureItem}>
-              <Ionicons name="calendar" size={24} color="#FF3B30" />
-              <Text style={styles.featureText}>Find local music events</Text>
+              <View style={styles.featureIcon}>
+                <Ionicons name="calendar" size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.featureText}>Browse upcoming events in your area</Text>
             </View>
             
             <View style={styles.featureItem}>
-              <Ionicons name="people" size={24} color="#FF3B30" />
-              <Text style={styles.featureText}>Join jam sessions with other musicians</Text>
+              <View style={styles.featureIcon}>
+                <Ionicons name="people" size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.featureText}>Connect with other musicians at events</Text>
             </View>
             
             <View style={styles.featureItem}>
-              <Ionicons name="musical-notes" size={24} color="#FF3B30" />
-              <Text style={styles.featureText}>Create your own events and invite others</Text>
+              <View style={styles.featureIcon}>
+                <Ionicons name="musical-notes" size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.featureText}>Host your own jam sessions</Text>
             </View>
           </View>
-          
-          <TouchableOpacity style={styles.notifyButton}>
-            <Text style={styles.notifyButtonText}>Notify Me When Available</Text>
-          </TouchableOpacity>
         </View>
       </View>
-      
-      <TabBar />
     </View>
   );
 }
@@ -83,82 +80,70 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
     paddingTop: 60,
     paddingBottom: 20,
-    paddingHorizontal: 20,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#FFFFFF',
-    fontFamily: 'Poppins-SemiBold',
+  },
+  filterButton: {
+    padding: 8,
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 30,
+    paddingHorizontal: 24,
   },
   comingSoonContainer: {
-    width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
   comingSoonImage: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    marginBottom: 30,
+    marginBottom: 24,
   },
   comingSoonTitle: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 16,
-    fontFamily: 'Poppins-Bold',
   },
   comingSoonDescription: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#FFFFFF',
     textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 24,
-    fontFamily: 'Poppins-Regular',
+    marginBottom: 32,
+    opacity: 0.8,
   },
   featureList: {
     width: '100%',
-    marginBottom: 40,
+    gap: 16,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    gap: 16,
+  },
+  featureIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   featureText: {
+    flex: 1,
     fontSize: 16,
     color: '#FFFFFF',
-    marginLeft: 12,
-    fontFamily: 'Poppins-Regular',
-  },
-  notifyButton: {
-    backgroundColor: '#FF3B30',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 100,
-    marginTop: 10,
-  },
-  notifyButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    fontFamily: 'Poppins-SemiBold',
-  },
-  filterButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    opacity: 0.8,
   },
 });

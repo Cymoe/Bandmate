@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { SplashScreen as CustomSplashScreen } from '@/components/SplashScreen';
@@ -37,55 +38,73 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ 
-        headerShown: false,
-        animation: 'slide_from_right',
-        gestureEnabled: true,
-        gestureDirection: 'horizontal'
-      }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="onboarding/email" />
-        <Stack.Screen name="onboarding/email-verification" />
-        <Stack.Screen name="onboarding/verification-code" />
-        <Stack.Screen name="onboarding/create-password" />
-        <Stack.Screen name="onboarding/confirm-password" />
-        <Stack.Screen name="onboarding/location" />
-        <Stack.Screen name="onboarding/pictures" />
-        <Stack.Screen name="onboarding/about-you" />
-        <Stack.Screen name="onboarding/notifications" />
-        <Stack.Screen name="onboarding/success" />
-        <Stack.Screen name="onboarding/welcome" />
-        <Stack.Screen name="matches" />
-        <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
-        <Stack.Screen
-          name="matching"
-          options={{
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack
+          screenOptions={{
             headerShown: false,
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+            headerStyle: {
+              backgroundColor: '#121212',
+            },
+            headerTintColor: '#FFFFFF',
+            headerTitle: '',
+            headerShadowVisible: false,
           }}
-        />
-        <Stack.Screen
-          name="filters"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="chats"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="events"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="login" />
+          <Stack.Screen name="onboarding/email" />
+          <Stack.Screen name="onboarding/email-verification" />
+          <Stack.Screen name="onboarding/verification-code" />
+          <Stack.Screen name="onboarding/create-password" />
+          <Stack.Screen name="onboarding/confirm-password" />
+          <Stack.Screen name="onboarding/location" />
+          <Stack.Screen name="onboarding/pictures" />
+          <Stack.Screen name="onboarding/about-you" />
+          <Stack.Screen name="onboarding/notifications" />
+          <Stack.Screen name="onboarding/success" />
+          <Stack.Screen name="onboarding/welcome" />
+          <Stack.Screen name="matches" />
+          <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
+          <Stack.Screen
+            name="matching"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="filters"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="chats"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="events"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen 
+            name="artist-profile" 
+            options={{ headerShown: true }} 
+          />
+          <Stack.Screen 
+            name="band-profile" 
+            options={{ headerShown: true }} 
+          />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
