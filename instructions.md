@@ -1,0 +1,1 @@
+Reanimated + gesture-handler for tinder swiping functionality  

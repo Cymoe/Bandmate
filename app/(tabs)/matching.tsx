@@ -1,15 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Animated as RNAnimated, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Platform, ActivityIndicator } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  withSpring,
+  useSharedValue,
+  runOnJS,
+  interpolate,
+  Extrapolate,
+  withTiming,
+  useDerivedValue,
+  cancelAnimation,
+  useAnimatedReaction
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { PanGestureHandler, State, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GestureDetector, Gesture, GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.45; // Tinder uses a larger threshold
+const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.15;
 const SWIPE_OUT_DURATION = 250;
-const ROTATION_ANGLE = 12; // Tinder's rotation angle
+const ROTATION_ANGLE = 8;
 
 type Profile = {
   id: string;
@@ -73,185 +85,251 @@ export default function MatchingScreen() {
     }
   ]);
 
-  // Animation values with better initial values for smoother transitions
-  const position = useRef(new RNAnimated.ValueXY()).current;
-  const rotation = position.x.interpolate({
-    inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-    outputRange: [`-${ROTATION_ANGLE}deg`, '0deg', `${ROTATION_ANGLE}deg`],
-    extrapolate: 'clamp'
-  });
-  const likeOpacity = useRef(new RNAnimated.Value(0)).current;
-  const nopeOpacity = useRef(new RNAnimated.Value(0)).current;
-  const nextCardScale = useRef(new RNAnimated.Value(0.9)).current;
-  const nextCardOpacity = useRef(new RNAnimated.Value(0.8)).current;
+  // Animated values
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const likeOpacity = useSharedValue(0);
+  const nopeOpacity = useSharedValue(0);
+  const nextCardScale = useSharedValue(0.92);
+  const nextCardOpacity = useSharedValue(0.85);
 
   // Reset animation state
   const resetAnimationState = () => {
-    position.setValue({ x: 0, y: 0 });
-    likeOpacity.setValue(0);
-    nopeOpacity.setValue(0);
-    nextCardScale.setValue(0.9);
-    nextCardOpacity.setValue(0.8);
+    translateX.value = 0;
+    translateY.value = 0;
+    likeOpacity.value = 0;
+    nopeOpacity.value = 0;
+    nextCardScale.value = 0.92;
+    nextCardOpacity.value = 0.85;
   };
 
-  // Force card to swipe out
-  const forceSwipe = (direction: 'right' | 'left' | 'up') => {
-    if (swiping) return;
-    setSwiping(true);
-
-    const x = direction === 'right' ? SCREEN_WIDTH * 1.5 : direction === 'left' ? -SCREEN_WIDTH * 1.5 : 0;
-    const y = direction === 'up' ? -SCREEN_HEIGHT * 1.5 : 0;
-
-    // Animate card out with simpler animation
-    RNAnimated.timing(position, {
-      toValue: { x, y },
-      duration: SWIPE_OUT_DURATION,
-      useNativeDriver: true
-    }).start(() => {
-      // Reset position immediately
-      position.setValue({ x: 0, y: 0 });
-      
-      // Update index after animation completes
-      setCurrentIndex(prevIndex => {
-        // Ensure we don't go out of bounds
-        return (prevIndex + 1) % profiles.length;
-      });
-      
-      // Reset animation values
-      likeOpacity.setValue(0);
-      nopeOpacity.setValue(0);
-      nextCardScale.setValue(0.9);
-      nextCardOpacity.setValue(0.8);
-      
-      // Allow swiping again
-      setSwiping(false);
+  // Animate next card to become the top card
+  const animateNextCard = () => {
+    nextCardScale.value = withSpring(1, {
+      damping: 12,
+      stiffness: 80,
+      mass: 0.6,
+      overshootClamping: false,
+      restDisplacementThreshold: 0.01,
+      restSpeedThreshold: 2
+    });
+    nextCardOpacity.value = withSpring(1, {
+      damping: 12,
+      stiffness: 80,
+      mass: 0.6,
+      overshootClamping: false,
+      restDisplacementThreshold: 0.01,
+      restSpeedThreshold: 2
     });
   };
 
-  // Get card style based on index
-  const getCardStyle = (index: number) => {
-    if (index < currentIndex) return null;
-    if (index > currentIndex + 1) return null;
+  // Force swipe in a direction
+  const forceSwipe = (direction: 'right' | 'left' | 'up') => {
+    if (swiping) return;
+    setSwiping(true);
+    
+    // Cancel any ongoing animations
+    cancelAnimation(translateX);
+    cancelAnimation(translateY);
+    
+    const x = direction === 'right' ? SCREEN_WIDTH * 1.5 : direction === 'left' ? -SCREEN_WIDTH * 1.5 : 0;
+    const y = direction === 'up' ? -SCREEN_HEIGHT * 1.5 : 0;
 
-    if (index === currentIndex) {
-      // Current card
-      const rotate = position.x.interpolate({
-        inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-        outputRange: [`-${ROTATION_ANGLE}deg`, '0deg', `${ROTATION_ANGLE}deg`],
-        extrapolate: 'clamp'
-      });
+    // Show appropriate indicator
+    if (direction === 'right') {
+      likeOpacity.value = withTiming(1, { duration: 150 });
+    } else if (direction === 'left') {
+      nopeOpacity.value = withTiming(1, { duration: 150 });
+    }
 
-      return {
-        transform: [
-          { translateX: position.x },
-          { translateY: position.y },
-          { rotate }
-        ],
-        zIndex: profiles.length - index
-      };
-    } else {
-      // Next card
-      return {
-        transform: [
-          { scale: nextCardScale }
-        ],
-        opacity: nextCardOpacity,
-        zIndex: profiles.length - index
-      };
+    // Start animating the next card
+    animateNextCard();
+
+    // Animate the card out
+    translateX.value = withSpring(
+      x, 
+      {
+        damping: 12,
+        stiffness: 80,
+        mass: 0.5,
+        overshootClamping: true,
+        restDisplacementThreshold: 0.01,
+        restSpeedThreshold: 2
+      },
+      () => {
+        runOnJS(handleSwipeComplete)(direction);
+      }
+    );
+
+    if (direction === 'up') {
+      translateY.value = withSpring(
+        y, 
+        {
+          damping: 12,
+          stiffness: 80,
+          mass: 0.5,
+          overshootClamping: true,
+          restDisplacementThreshold: 0.01,
+          restSpeedThreshold: 2
+        }
+      );
     }
   };
 
-  // Handle gesture movement
-  const handleGestureEvent = RNAnimated.event(
-    [{ nativeEvent: { translationX: position.x, translationY: position.y } }],
-    { useNativeDriver: true }
-  );
+  // Handle swipe completion
+  const handleSwipeComplete = (direction: 'right' | 'left' | 'up') => {
+    // Reset position
+    translateX.value = 0;
+    translateY.value = 0;
+    
+    // Update index
+    setCurrentIndex(prevIndex => (prevIndex + 1) % profiles.length);
+    
+    // Reset other animated values
+    likeOpacity.value = 0;
+    nopeOpacity.value = 0;
+    nextCardScale.value = 0.92;
+    nextCardOpacity.value = 0.85;
+    
+    // Allow new swipes after a short delay
+    setTimeout(() => setSwiping(false), 50);
+  };
 
-  // Handle gesture state changes
-  const handleStateChange = (event: any) => {
-    const { nativeEvent } = event;
-
-    if (nativeEvent.state === State.BEGAN) {
-      setSwiping(true);
-    }
-    else if (nativeEvent.state === State.ACTIVE) {
-      const { translationX } = nativeEvent;
+  // Pan gesture handler
+  const panGesture = Gesture.Pan()
+    .onBegin(() => {
+      runOnJS(setSwiping)(true);
+    })
+    .onUpdate((event) => {
+      // Update position
+      translateX.value = event.translationX;
+      translateY.value = event.translationY * 0.5;
       
-      // Update like/nope labels with smoother transitions
-      if (translationX > 0) {
-        // LIKE
-        const progress = Math.min(translationX / SWIPE_THRESHOLD, 1);
-        likeOpacity.setValue(progress);
-        nopeOpacity.setValue(0);
-      } else if (translationX < 0) {
-        // NOPE
-        const progress = Math.min(-translationX / SWIPE_THRESHOLD, 1);
-        nopeOpacity.setValue(progress);
-        likeOpacity.setValue(0);
+      // Update indicators
+      if (event.translationX > 20) {
+        likeOpacity.value = Math.min(event.translationX / (SWIPE_THRESHOLD * 1.2), 1);
+        nopeOpacity.value = 0;
+      } else if (event.translationX < -20) {
+        nopeOpacity.value = Math.min(-event.translationX / (SWIPE_THRESHOLD * 1.2), 1);
+        likeOpacity.value = 0;
+      } else {
+        likeOpacity.value = 0;
+        nopeOpacity.value = 0;
       }
       
-      // Update next card scale based on current card movement
-      const absX = Math.abs(translationX);
-      const progress = Math.min(absX / (SCREEN_WIDTH * 0.3), 1);
-      nextCardScale.setValue(0.9 + (progress * 0.1));
-      nextCardOpacity.setValue(0.8 + (progress * 0.2));
-    }
-    else if (nativeEvent.oldState === State.ACTIVE) {
-      const { translationX, translationY, velocityX, velocityY } = nativeEvent;
-
-      // Tinder-like swipe detection with better thresholds
-      const hasHighVelocity = Math.abs(velocityX) > 800;
-      const hasMetThreshold = Math.abs(translationX) > SWIPE_THRESHOLD;
-      const isQuickSwipe = Math.abs(velocityX) > 300 && Math.abs(translationX) > SCREEN_WIDTH * 0.2;
+      // Update next card
+      const absX = Math.abs(event.translationX);
+      const progress = Math.min(absX / (SCREEN_WIDTH * 0.2), 1);
+      nextCardScale.value = 0.92 + (progress * 0.08);
+      nextCardOpacity.value = 0.85 + (progress * 0.15);
+    })
+    .onEnd((event) => {
+      const swipeVelocityThreshold = Platform.OS === 'ios' ? 500 : 400;
       
-      if (hasHighVelocity || hasMetThreshold || isQuickSwipe) {
-        // Swipe left or right
-        forceSwipe(translationX > 0 ? 'right' : 'left');
-      }
-      else if (translationY < -SCREEN_HEIGHT * 0.15 && Math.abs(translationX) < SCREEN_WIDTH * 0.15) {
-        // Super like (up swipe)
-        forceSwipe('up');
-      }
-      else {
+      // Check if swipe should complete
+      const hasExceededPositionThreshold = Math.abs(translateX.value) > SWIPE_THRESHOLD;
+      const hasExceededVelocityThreshold = Math.abs(event.velocityX) > swipeVelocityThreshold;
+      
+      if (hasExceededVelocityThreshold || hasExceededPositionThreshold) {
+        const direction = translateX.value > 0 ? 'right' : 'left';
+        
+        // Complete the swipe
+        const x = direction === 'right' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
+        
+        translateX.value = withSpring(
+          x, 
+          {
+            damping: 12,
+            stiffness: 80,
+            mass: 0.5,
+            overshootClamping: true,
+            restDisplacementThreshold: 0.01,
+            restSpeedThreshold: 2,
+            velocity: event.velocityX
+          },
+          () => {
+            runOnJS(handleSwipeComplete)(direction);
+          }
+        );
+      } else {
         // Return to center with spring animation
-        RNAnimated.spring(position, {
-          toValue: { x: 0, y: 0 },
-          friction: 5,
-          tension: 40,
-          useNativeDriver: true
-        }).start(() => {
-          // Reset labels
-          RNAnimated.parallel([
-            RNAnimated.timing(likeOpacity, {
-              toValue: 0,
-              duration: 100,
-              useNativeDriver: true
-            }),
-            RNAnimated.timing(nopeOpacity, {
-              toValue: 0,
-              duration: 100,
-              useNativeDriver: true
-            }),
-            RNAnimated.spring(nextCardScale, {
-              toValue: 0.9,
-              friction: 5,
-              tension: 40,
-              useNativeDriver: true
-            }),
-            RNAnimated.spring(nextCardOpacity, {
-              toValue: 0.8,
-              friction: 5,
-              tension: 40,
-              useNativeDriver: true
-            })
-          ]).start(() => {
-            setSwiping(false);
-          });
+        translateX.value = withSpring(0, {
+          damping: 15,
+          stiffness: 150,
+          mass: 0.5,
+          overshootClamping: false,
+          restDisplacementThreshold: 0.01,
+          restSpeedThreshold: 2,
+          velocity: event.velocityX
         });
+        
+        translateY.value = withSpring(0, {
+          damping: 15,
+          stiffness: 150,
+          mass: 0.5,
+          overshootClamping: false,
+          restDisplacementThreshold: 0.01,
+          restSpeedThreshold: 2,
+          velocity: event.velocityY
+        });
+        
+        // Fade out indicators
+        likeOpacity.value = withTiming(0, { duration: 150 });
+        nopeOpacity.value = withTiming(0, { duration: 150 });
+        
+        // Return next card to original state
+        nextCardScale.value = withSpring(0.92, {
+          damping: 15,
+          stiffness: 150,
+          mass: 0.5
+        });
+        
+        nextCardOpacity.value = withSpring(0.85, {
+          damping: 15,
+          stiffness: 150,
+          mass: 0.5
+        });
+        
+        // Allow new swipes
+        runOnJS(setSwiping)(false);
       }
-    }
-  };
+    })
+    .onFinalize(() => {
+      // Ensure swiping state is reset if gesture is interrupted
+      if (swiping) {
+        runOnJS(setSwiping)(false);
+      }
+    });
 
+  // Animated styles for the top card
+  const cardAnimatedStyle = useAnimatedStyle(() => {
+    const rotateValue = interpolate(
+      translateX.value,
+      [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
+      [-ROTATION_ANGLE, 0, ROTATION_ANGLE],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { rotate: `${rotateValue}deg` }
+      ]
+    };
+  });
+
+  // Animated styles for the next card
+  const nextCardAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { scale: nextCardScale.value }
+      ],
+      opacity: nextCardOpacity.value
+    };
+  });
+
+  // Render cards
   const renderCards = () => {
     if (initialLoading) {
       return (
@@ -261,7 +339,7 @@ export default function MatchingScreen() {
       );
     }
 
-    // Create a simple array of visible cards
+    // Create array of visible cards
     const visibleCards = [];
     
     // Add current card if available
@@ -291,43 +369,27 @@ export default function MatchingScreen() {
       });
     }
 
+    // No cards? Show empty state
+    if (visibleCards.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateText}>No more profiles</Text>
+        </View>
+      );
+    }
+
     return (
       <View style={styles.cardContainer} pointerEvents="box-none">
         {visibleCards.map(({ profile, index, isTopCard }) => {
-          const cardStyle = isTopCard ? {
-            transform: [
-              { translateX: position.x },
-              { translateY: position.y },
-              { rotate: position.x.interpolate({
-                  inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-                  outputRange: [`-${ROTATION_ANGLE}deg`, '0deg', `${ROTATION_ANGLE}deg`],
-                  extrapolate: 'clamp'
-                })
-              }
-            ],
-            zIndex: 10
-          } : {
-            transform: [
-              { scale: nextCardScale }
-            ],
-            opacity: nextCardOpacity,
-            zIndex: 5
-          };
-
           if (isTopCard) {
             return (
-              <PanGestureHandler
-                key={`top-${profile.id}`}
-                onGestureEvent={handleGestureEvent}
-                onHandlerStateChange={handleStateChange}
-                minDist={5}
-                enabled={!swiping}
-              >
-                <RNAnimated.View 
+              <GestureDetector key={`card-${profile.id}`} gesture={panGesture}>
+                <Animated.View 
                   style={[
                     styles.card,
-                    cardStyle,
+                    cardAnimatedStyle,
                     {
+                      zIndex: 10,
                       shadowColor: "#000",
                       shadowOffset: { width: 0, height: 8 },
                       shadowOpacity: 0.3,
@@ -337,36 +399,38 @@ export default function MatchingScreen() {
                   ]}
                 >
                   {renderCardContent(profile, true)}
-                </RNAnimated.View>
-              </PanGestureHandler>
+                </Animated.View>
+              </GestureDetector>
             );
           }
 
           return (
-            <RNAnimated.View 
+            <Animated.View 
               key={`card-${profile.id}`}
               style={[
                 styles.card, 
-                cardStyle,
+                nextCardAnimatedStyle,
                 { 
+                  zIndex: profiles.length - index,
                   shadowColor: "#000",
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.2,
                   shadowRadius: 5,
-                  elevation: 5
+                  elevation: 5,
+                  marginTop: 6
                 }
               ]}
               pointerEvents="none"
             >
               {renderCardContent(profile, false)}
-            </RNAnimated.View>
+            </Animated.View>
           );
         }).reverse()}
       </View>
     );
   };
 
-  // Update card rendering to use fade in animation for smoother transitions
+  // Render card content
   const renderCardContent = (profile: Profile, isTopCard: boolean) => {
     const isLoaded = imagesLoaded[profile.id];
     
@@ -386,43 +450,43 @@ export default function MatchingScreen() {
         
         {isTopCard && (
           <>
-            <RNAnimated.View 
+            <Animated.View 
               style={[
                 styles.overlayLabel, 
                 styles.likeLabel,
                 { opacity: likeOpacity }
               ]}
+              pointerEvents="none"
             >
               <Text style={[styles.overlayText, { color: '#00CC00' }]}>LIKE</Text>
-            </RNAnimated.View>
+            </Animated.View>
             
-            <RNAnimated.View 
+            <Animated.View 
               style={[
                 styles.overlayLabel, 
                 styles.nopeLabel,
                 { opacity: nopeOpacity }
               ]}
+              pointerEvents="none"
             >
               <Text style={[styles.overlayText, { color: '#FF0000' }]}>NOPE</Text>
-            </RNAnimated.View>
+            </Animated.View>
           </>
         )}
         
-        {/* Enhanced gradient overlays for smoother transitions */}
         <LinearGradient
-          colors={['rgba(0,0,0,0.8)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.2)', 'transparent']}
+          colors={['rgba(0,0,0,0.85)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.2)', 'transparent']}
           locations={[0, 0.25, 0.5, 1]}
           style={styles.overlayTop}
         />
         
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.8)']}
+          colors={['transparent', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.85)']}
           locations={[0, 0.4, 0.7, 1]}
           style={styles.overlayBottom}
         />
 
-        {/* Add opacity animation for content to reduce flashing */}
-        <RNAnimated.View style={[styles.cardContent, { opacity: isLoaded ? 1 : 0 }]}>
+        <Animated.View style={[styles.cardContent, { opacity: isLoaded ? 1 : 0 }]}>
           <View style={styles.verifiedContainer}>
             <View style={styles.verifiedBadge}>
               <Ionicons name="checkmark-circle" size={24} color="#0D72EA" />
@@ -450,7 +514,7 @@ export default function MatchingScreen() {
                   <Image
                     key={i}
                     source={{ uri: `https://picsum.photos/24/24?random=${i}` }}
-                    style={[styles.matchAvatar, { zIndex: 3 - i }]}
+                    style={[styles.matchAvatar, { zIndex: 3 - i, marginLeft: i > 0 ? -8 : 0 }]}
                     fadeDuration={0}
                   />
                 ))}
@@ -490,14 +554,13 @@ export default function MatchingScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </RNAnimated.View>
+        </Animated.View>
       </>
     );
   };
 
-  // Preload all profile images at once to eliminate flashing
+  // Preload images
   useEffect(() => {
-    // Start with placeholder images loaded
     const initialLoadedState = profiles.reduce((acc, profile) => {
       acc[profile.id] = false;
       return acc;
@@ -506,7 +569,6 @@ export default function MatchingScreen() {
     setImagesLoaded(initialLoadedState);
     
     const preloadImages = async () => {
-      // Create array of prefetch promises
       const imageLoadPromises = profiles.map(profile => {
         if (profile.image) {
           return Image.prefetch(profile.image)
@@ -516,7 +578,6 @@ export default function MatchingScreen() {
             })
             .catch(err => {
               console.log('Image prefetch error:', err);
-              // Still mark as loaded to avoid hanging
               setImagesLoaded(prev => ({...prev, [profile.id]: true}));
               return false;
             });
@@ -524,16 +585,39 @@ export default function MatchingScreen() {
         return Promise.resolve(true);
       });
       
-      // Wait for all promises to resolve
-      await Promise.all(imageLoadPromises);
+      try {
+        await Promise.all(imageLoadPromises);
+      } catch (error) {
+        console.log('Error preloading images:', error);
+        profiles.forEach(profile => {
+          setImagesLoaded(prev => ({...prev, [profile.id]: true}));
+        });
+      }
       
-      // Set loading complete
       setTimeout(() => {
         setInitialLoading(false);
-      }, 200); // Short delay to ensure smooth transition
+        
+        // Reset animations
+        translateX.value = 0;
+        translateY.value = 0;
+        likeOpacity.value = 0;
+        nopeOpacity.value = 0;
+        nextCardScale.value = 0.92;
+        nextCardOpacity.value = 0.85;
+      }, 300);
     };
     
     preloadImages();
+    
+    // Cleanup
+    return () => {
+      translateX.value = 0;
+      translateY.value = 0;
+      likeOpacity.value = 0;
+      nopeOpacity.value = 0;
+      nextCardScale.value = 0.92;
+      nextCardOpacity.value = 0.85;
+    };
   }, []);
 
   return (
@@ -541,14 +625,12 @@ export default function MatchingScreen() {
       <View style={styles.container}>
         <StatusBar barStyle="light-content" />
         
-        {/* Background gradient */}
         <LinearGradient
           colors={['#733B2C', '#121212']}
           locations={[0.2, 0.7]}
           style={styles.hero}
         />
         
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View style={styles.userInfo}>
@@ -572,11 +654,25 @@ export default function MatchingScreen() {
           </View>
         </View>
         
-        {/* Action Buttons */}
         <View style={styles.actionButtonsContainer}>
           <TouchableOpacity 
             style={[styles.actionButton, styles.rewindButton]}
-            onPress={() => !swiping && forceSwipe('left')}
+            onPress={() => {
+              if (!swiping && currentIndex > 0) {
+                setSwiping(true);
+                setCurrentIndex(currentIndex - 1);
+                
+                // Reset animation values
+                translateX.value = 0;
+                translateY.value = 0;
+                likeOpacity.value = 0;
+                nopeOpacity.value = 0;
+                nextCardScale.value = 0.92;
+                nextCardOpacity.value = 0.85;
+                
+                setTimeout(() => setSwiping(false), 300);
+              }
+            }}
           >
             <Ionicons name="play-skip-back" size={24} color="#121212" />
           </TouchableOpacity>
@@ -584,6 +680,7 @@ export default function MatchingScreen() {
           <TouchableOpacity 
             style={[styles.actionButton, styles.nopeButton]}
             onPress={() => !swiping && forceSwipe('left')}
+            activeOpacity={0.7}
           >
             <Ionicons name="close" size={40} color="#121212" />
           </TouchableOpacity>
@@ -591,6 +688,7 @@ export default function MatchingScreen() {
           <TouchableOpacity 
             style={[styles.actionButton, styles.superLikeButton]}
             onPress={() => !swiping && forceSwipe('up')}
+            activeOpacity={0.7}
           >
             <Ionicons name="arrow-up" size={40} color="#121212" />
           </TouchableOpacity>
@@ -598,16 +696,19 @@ export default function MatchingScreen() {
           <TouchableOpacity 
             style={[styles.actionButton, styles.likeButton]}
             onPress={() => !swiping && forceSwipe('right')}
+            activeOpacity={0.7}
           >
             <Ionicons name="heart" size={40} color="#121212" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.actionButton, styles.boostButton]}>
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.boostButton]}
+            activeOpacity={0.7}
+          >
             <Ionicons name="flash" size={24} color="#121212" />
           </TouchableOpacity>
         </View>
         
-        {/* Cards Container - Rendered last to be on top */}
         {renderCards()}
       </View>
     </GestureHandlerRootView>
@@ -634,6 +735,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 9000,
     elevation: 9000,
+    paddingBottom: 100, // More space at bottom for buttons
   },
   card: {
     position: 'absolute',
@@ -667,6 +769,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: 'bold',
     textAlign: 'center',
+    letterSpacing: 1,
   },
   header: {
     position: 'absolute',
@@ -708,14 +811,14 @@ const styles = StyleSheet.create({
     height: 28,
   },
   greeting: {
-    fontFamily: 'Poppins',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
     fontSize: 17,
     fontWeight: '500',
     color: '#FFFFFF',
     letterSpacing: -0.5,
   },
   subgreeting: {
-    fontFamily: 'Poppins',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
     fontSize: 12,
     fontWeight: '500',
     color: 'rgba(255, 255, 255, 0.64)',
@@ -753,7 +856,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   verifiedText: {
-    fontFamily: 'Poppins',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
     fontWeight: '500',
     fontSize: 12,
     lineHeight: 16,
@@ -771,7 +874,7 @@ const styles = StyleSheet.create({
     borderRadius: 100,
   },
   percentText: {
-    fontFamily: 'Poppins',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
     fontWeight: '600',
     fontSize: 16,
     lineHeight: 24,
@@ -796,12 +899,12 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   nameText: {
-    fontFamily: 'Abril Fatface',
+    fontFamily: Platform.OS === 'ios' ? 'Abril Fatface' : 'serif',
     fontSize: 44,
     lineHeight: 60,
     color: '#FFFFFF',
-    textShadowColor: 'rgba(0,0,0,0.4)',
-    textShadowOffset: { width: 1, height: 1 },
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 1, height: 2 },
     textShadowRadius: 3,
     marginBottom: 8,
   },
@@ -812,14 +915,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   locationText: {
-    fontFamily: 'Poppins',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
     fontWeight: '500',
     fontSize: 14,
     lineHeight: 18,
     color: '#FFFFFF',
   },
   distanceText: {
-    fontFamily: 'Poppins',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
     fontWeight: '500',
     fontSize: 14,
     lineHeight: 18,
@@ -841,15 +944,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#FFFFFF',
-    marginLeft: -8,
   },
   matchesText: {
-    fontFamily: 'Poppins',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
     fontSize: 12,
     color: '#FFFFFF',
   },
   viewsText: {
-    fontFamily: 'Poppins',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
     fontSize: 12,
     color: '#FFFFFF',
     marginBottom: 16,
@@ -867,7 +969,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   genreText: {
-    fontFamily: 'Poppins',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
     fontSize: 11,
     color: '#FFFFFF',
   },
@@ -878,7 +980,7 @@ const styles = StyleSheet.create({
   },
   bioText: {
     flex: 1,
-    fontFamily: 'Poppins',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
     fontSize: 12,
     lineHeight: 18,
     color: '#FFFFFF',
@@ -906,9 +1008,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   verifiedTextBadge: {
-    fontFamily: 'Poppins',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
     fontSize: 12,
     color: '#FFFFFF',
+    fontWeight: '500',
   },
   matchPercent: {
     paddingVertical: 4,
@@ -919,7 +1022,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.48)',
   },
   matchPercentText: {
-    fontFamily: 'Poppins',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
@@ -941,6 +1044,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 100,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.27,
+    shadowRadius: 4.65,
+    elevation: 6,
   },
   rewindButton: {
     width: 48,
@@ -952,7 +1060,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     backgroundColor: '#F41857',
-    transform: [{ rotate: '-180deg' }],
   },
   superLikeButton: {
     width: 56,
@@ -1010,5 +1117,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(18, 18, 18, 0.9)',
     zIndex: 10000,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#FFFFFF',
   },
 });
