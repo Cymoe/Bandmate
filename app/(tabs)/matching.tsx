@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, Image, Dimensions, Platform, ActivityIndicator } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   withSpring,
@@ -399,7 +399,26 @@ export default function MatchingScreen() {
                     }
                   ]}
                 >
-                  {renderCardContent(profile, true)}
+                  <TouchableWithoutFeedback
+                    onPress={() => {
+                      const route = profile.type === 'band' ? '/band-profile' : '/artist-profile';
+                      router.push({
+                        pathname: route,
+                        params: { 
+                          id: profile.id,
+                          name: profile.name,
+                          type: profile.type,
+                          location: profile.location,
+                          distance: profile.distance,
+                          image: profile.image
+                        }
+                      });
+                    }}
+                  >
+                    <View style={{flex: 1}}>
+                      {renderCardContent(profile, true)}
+                    </View>
+                  </TouchableWithoutFeedback>
                 </Animated.View>
               </GestureDetector>
             );
@@ -543,11 +562,19 @@ export default function MatchingScreen() {
               </Text>
               <TouchableOpacity 
                 style={styles.moreButton}
-                onPress={() => {
+                onPress={(event) => {
+                  event.stopPropagation();
                   const route = profile.type === 'band' ? '/band-profile' : '/artist-profile';
                   router.push({
                     pathname: route,
-                    params: { id: profile.id }
+                    params: { 
+                      id: profile.id,
+                      name: profile.name,
+                      type: profile.type,
+                      location: profile.location,
+                      distance: profile.distance,
+                      image: profile.image  
+                    }
                   });
                 }}
               >
