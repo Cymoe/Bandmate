@@ -1,33 +1,66 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, TextInput, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import Svg, { Path, G, Rect, ClipPath, Defs } from 'react-native-svg';
 
 // Dummy data for chats
 const DUMMY_CHATS = [
   {
     id: '1',
-    name: "Sarah's Band",
-    lastMessage: 'Hey, we\'re looking for a drummer!',
-    time: '2m ago',
+    name: 'Viktor Sola',
+    lastMessage: 'Last message',
+    time: '10:55 PM',
     image: require('@/assets/images/avatar.png'),
-    unread: true,
+    unread: 12,
+    isPinned: true,
   },
   {
     id: '2',
-    name: 'Rock Ensemble',
-    lastMessage: 'When can you come for practice?',
-    time: '1h ago',
+    name: 'Viktor Sola',
+    lastMessage: 'Last message',
+    time: '10:55 PM',
     image: require('@/assets/images/avatar.png'),
-    unread: false,
+    unread: 4,
+    isPinned: true,
   },
   {
     id: '3',
-    name: 'Jazz Quartet',
-    lastMessage: 'Great session yesterday!',
-    time: '2h ago',
+    name: 'Viktor Sola',
+    lastMessage: 'Last message',
+    time: '10:55 PM',
     image: require('@/assets/images/avatar.png'),
-    unread: false,
+    unread: 12,
+    isPinned: true,
+  },
+  {
+    id: '4',
+    name: 'Viktor Sola',
+    lastMessage: 'Last message',
+    time: '10:55 PM',
+    image: require('@/assets/images/avatar.png'),
+    unread: 12,
+    isPinned: false,
+  },
+  {
+    id: '5',
+    name: 'Viktor Sola',
+    lastMessage: 'Last message',
+    time: '10:55 PM',
+    image: require('@/assets/images/avatar.png'),
+    unread: 4,
+    isPinned: false,
+  },
+  {
+    id: '6',
+    name: 'Viktor Sola',
+    lastMessage: 'Last message',
+    time: '10:55 PM',
+    image: require('@/assets/images/avatar.png'),
+    unread: 12,
+    isPinned: false,
   },
 ];
 
@@ -41,32 +74,124 @@ const ChatItem = ({ item }: { item: any }) => (
       </View>
       <View style={styles.chatFooter}>
         <Text style={styles.lastMessage} numberOfLines={1}>
-          {item.lastMessage}
+          {item.lastMessage} • 
+          <Ionicons name="checkmark-done" size={14} color="rgba(255, 255, 255, 0.48)" />
         </Text>
-        {item.unread && <View style={styles.unreadDot} />}
+        {item.unread > 0 && (
+          <View style={styles.unreadContainer}>
+            <Text style={styles.unreadText}>{item.unread}</Text>
+          </View>
+        )}
       </View>
     </View>
+    <TouchableOpacity style={styles.callButton}>
+      <Ionicons name="call" size={22} color="white" />
+    </TouchableOpacity>
   </TouchableOpacity>
 );
 
 export default function ChatsScreen() {
+  const [activeTab, setActiveTab] = React.useState('Conversations');
+  const pinnedChats = DUMMY_CHATS.filter(chat => chat.isPinned);
+  const regularChats = DUMMY_CHATS.filter(chat => !chat.isPinned);
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
       <LinearGradient
-        colors={['#2D1F19', '#121212']}
+        colors={['#121212', '#121212']}
         style={StyleSheet.absoluteFill}
       />
       
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Messages</Text>
+        <TouchableOpacity style={styles.backButton}>
+          <Ionicons name="chevron-back" size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Chats</Text>
+        <TouchableOpacity style={styles.optionsButton} onPress={() => router.push('/chat-settings')}>
+          <Svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+            <Rect width="40" height="40" rx="20" fill="white" fillOpacity="0.08"/>
+            <G clipPath="url(#clip0_221_2018)">
+              <Path d="M12.5 25C12.5 25.4583 12.875 25.8333 13.3333 25.8333H17.5V24.1667H13.3333C12.875 24.1667 12.5 24.5417 12.5 25ZM12.5 15C12.5 15.4583 12.875 15.8333 13.3333 15.8333H20.8333V14.1667H13.3333C12.875 14.1667 12.5 14.5417 12.5 15ZM20.8333 26.6667V25.8333H26.6667C27.125 25.8333 27.5 25.4583 27.5 25C27.5 24.5417 27.125 24.1667 26.6667 24.1667H20.8333V23.3333C20.8333 22.875 20.4583 22.5 20 22.5C19.5417 22.5 19.1667 22.875 19.1667 23.3333V26.6667C19.1667 27.125 19.5417 27.5 20 27.5C20.4583 27.5 20.8333 27.125 20.8333 26.6667ZM15.8333 18.3333V19.1667H13.3333C12.875 19.1667 12.5 19.5417 12.5 20C12.5 20.4583 12.875 20.8333 13.3333 20.8333H15.8333V21.6667C15.8333 22.125 16.2083 22.5 16.6667 22.5C17.125 22.5 17.5 22.125 17.5 21.6667V18.3333C17.5 17.875 17.125 17.5 16.6667 17.5C16.2083 17.5 15.8333 17.875 15.8333 18.3333ZM27.5 20C27.5 19.5417 27.125 19.1667 26.6667 19.1667H19.1667V20.8333H26.6667C27.125 20.8333 27.5 20.4583 27.5 20ZM23.3333 17.5C23.7917 17.5 24.1667 17.125 24.1667 16.6667V15.8333H26.6667C27.125 15.8333 27.5 15.4583 27.5 15C27.5 14.5417 27.125 14.1667 26.6667 14.1667H24.1667V13.3333C24.1667 12.875 23.7917 12.5 23.3333 12.5C22.875 12.5 22.5 12.875 22.5 13.3333V16.6667C22.5 17.125 22.875 17.5 23.3333 17.5Z" fill="#F8F9FB"/>
+            </G>
+            <Defs>
+              <ClipPath id="clip0_221_2018">
+                <Rect width="20" height="20" fill="white" transform="translate(10 10)"/>
+              </ClipPath>
+            </Defs>
+          </Svg>
+        </TouchableOpacity>
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={20} color="rgba(255, 255, 255, 0.48)" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search for a conversation..."
+            placeholderTextColor="rgba(255, 255, 255, 0.48)"
+          />
+          <TouchableOpacity style={styles.clearButton}>
+            <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.48)" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'Conversations' && styles.activeTab]}
+          onPress={() => setActiveTab('Conversations')}
+        >
+          <Text style={[styles.tabText, activeTab === 'Conversations' && styles.activeTabText]}>
+            Conversations
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'Matches' && styles.activeTab]}
+          onPress={() => setActiveTab('Matches')}
+        >
+          <Text style={[styles.tabText, activeTab === 'Matches' && styles.activeTabText]}>
+            Matches
+          </Text>
+        </TouchableOpacity>
       </View>
       
       <FlatList
-        data={DUMMY_CHATS}
-        renderItem={ChatItem}
-        keyExtractor={(item) => item.id}
+        data={[
+          ...(pinnedChats.length > 0 ? [{ type: 'pinnedHeader' }] : []),
+          ...pinnedChats.map(chat => ({ type: 'chat', data: chat })),
+          ...(regularChats.length > 0 ? [{ type: 'regularHeader' }] : []),
+          ...regularChats.map(chat => ({ type: 'chat', data: chat })),
+        ]}
+        renderItem={({ item }) => {
+          if (item.type === 'pinnedHeader') {
+            return (
+              <View style={styles.sectionHeader}>
+                <Ionicons name="pin" size={16} color="rgba(255, 255, 255, 0.48)" />
+                <Text style={styles.sectionHeaderText}>ALL PINNED</Text>
+                <Text style={styles.sectionCount}>{pinnedChats.length}</Text>
+              </View>
+            );
+          } else if (item.type === 'regularHeader') {
+            return (
+              <View style={styles.sectionHeader}>
+                <Ionicons name="chatbubble-ellipses-outline" size={16} color="rgba(255, 255, 255, 0.48)" />
+                <Text style={styles.sectionHeaderText}>ALL CONVERSATIONS</Text>
+                <Text style={styles.sectionCount}>{regularChats.length}</Text>
+              </View>
+            );
+          } else {
+            return <ChatItem item={item.data} />;
+          }
+        }}
+        keyExtractor={(item, index) => 
+          item.type === 'chat' ? item.data.id : `${item.type}-${index}`
+        }
         contentContainerStyle={styles.chatsList}
+        showsVerticalScrollIndicator={false}
       />
     </View>
   );
@@ -78,24 +203,109 @@ const styles = StyleSheet.create({
     backgroundColor: '#121212',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingTop: 55,
+    paddingBottom: 12,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
+  },
+  optionsButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    backgroundColor: 'rgba(71, 71, 71, 0.24)',
+    borderRadius: 25,
+    paddingHorizontal: 16,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: '100%',
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
+  },
+  clearButton: {
+    padding: 5,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  tab: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    marginRight: 8,
+    backgroundColor: 'transparent',
+  },
+  activeTab: {
+    backgroundColor: '#FFFFFF',
+  },
+  tabText: {
+    color: '#FFFFFF',
+    fontWeight: '500',
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
+  },
+  activeTabText: {
+    color: '#121212',
   },
   chatsList: {
     paddingHorizontal: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  sectionHeaderText: {
+    color: 'rgba(255, 255, 255, 0.48)',
+    fontWeight: '500',
+    fontSize: 12,
+    marginLeft: 8,
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
+  },
+  sectionCount: {
+    color: 'rgba(255, 255, 255, 0.48)',
+    fontWeight: '500',
+    fontSize: 12,
+    marginLeft: 6,
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
   },
   chatItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   avatar: {
     width: 50,
@@ -116,25 +326,45 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
   },
   chatTime: {
     fontSize: 12,
-    color: '#828282',
+    color: 'rgba(255, 255, 255, 0.48)',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
   },
   chatFooter: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   lastMessage: {
     flex: 1,
     fontSize: 14,
-    color: '#828282',
-    marginRight: 8,
+    color: 'rgba(255, 255, 255, 0.48)',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
   },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#007AFF',
+  unreadContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 24,
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  unreadText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
+  },
+  callButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
   },
 });
