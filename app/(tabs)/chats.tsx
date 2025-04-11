@@ -64,6 +64,84 @@ const DUMMY_CHATS = [
   },
 ];
 
+// Add a DUMMY_MATCHES data structure for the matches tab
+const DUMMY_MATCHES = [
+  {
+    id: 'band-1',
+    category: 'BANDS',
+    items: [
+      {
+        id: 'band-1-1',
+        name: 'Alvin & The Chimpmunks',
+        type: 'Band',
+        date: 'Mar 12, 2025',
+        image: require('@/assets/images/avatar.png'),
+        isFavorite: true
+      },
+      {
+        id: 'band-1-2',
+        name: 'Vendetta',
+        type: 'Band',
+        date: 'Mar 12, 2025',
+        image: require('@/assets/images/avatar.png'),
+        isFavorite: true
+      },
+      {
+        id: 'band-1-3',
+        name: 'The Sunflowers',
+        type: 'Band',
+        date: 'Mar 12, 2025',
+        image: require('@/assets/images/avatar.png'),
+        isFavorite: true
+      }
+    ]
+  },
+  {
+    id: 'drummers-1',
+    category: 'DRUMMERS',
+    items: [
+      {
+        id: 'drummer-1-1',
+        name: 'Brandon',
+        type: 'Solo Artist',
+        date: 'Mar 12, 2025',
+        image: require('@/assets/images/avatar.png'),
+        isFavorite: true
+      },
+      {
+        id: 'drummer-1-2',
+        name: 'Kyle',
+        type: 'Solo Artist',
+        date: 'Mar 12, 2025',
+        image: require('@/assets/images/avatar.png'),
+        isFavorite: true
+      },
+      {
+        id: 'drummer-1-3',
+        name: 'Zoran',
+        type: 'Solo Artist',
+        date: 'Mar 12, 2025',
+        image: require('@/assets/images/avatar.png'),
+        isFavorite: true
+      }
+    ]
+  },
+  {
+    id: 'guitarist-1',
+    category: 'GUITARIST',
+    items: [
+      {
+        id: 'guitarist-1-1',
+        name: 'Alvin & The Chimpmunks',
+        type: 'Solo Artist',
+        date: 'Mar 12, 2025',
+        image: require('@/assets/images/avatar.png'),
+        isFavorite: true
+      }
+    ]
+  }
+];
+
 const ChatItem = ({ item }: { item: any }) => (
   <TouchableOpacity style={styles.chatItem}>
     <Image source={item.image} style={styles.avatar} />
@@ -90,10 +168,59 @@ const ChatItem = ({ item }: { item: any }) => (
   </TouchableOpacity>
 );
 
+// Add a MatchItem component to render match entries
+const MatchItem = ({ item }: { item: any }) => (
+  <View style={styles.matchItem}>
+    <Image source={item.image} style={styles.matchAvatar} />
+    <View style={styles.matchInfo}>
+      <View style={styles.matchNameRow}>
+        {item.isFavorite && <Ionicons name="star" size={16} color="#FF3B30" style={styles.starIcon} />}
+        <Text style={styles.matchName}>{item.name}</Text>
+      </View>
+      <Text style={styles.matchType}>{item.type} • {item.date}</Text>
+    </View>
+    <TouchableOpacity style={styles.sayHiButton}>
+      <Ionicons name="hand-right" size={16} color="#FFFFFF" />
+      <Text style={styles.sayHiText}>Say Hi</Text>
+    </TouchableOpacity>
+  </View>
+);
+
+// Add a CategoryHeader component
+const CategoryHeader = ({ category, count, isExpanded, onToggle }: {
+  category: string;
+  count: number;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) => (
+  <TouchableOpacity style={styles.categoryHeader} onPress={onToggle}>
+    <Text style={styles.categoryTitle}>{category} {count}</Text>
+    <Ionicons
+      name={isExpanded ? "chevron-down" : "chevron-forward"}
+      size={24}
+      color="rgba(255, 255, 255, 0.48)"
+    />
+  </TouchableOpacity>
+);
+
 export default function ChatsScreen() {
   const [activeTab, setActiveTab] = React.useState('Conversations');
   const pinnedChats = DUMMY_CHATS.filter(chat => chat.isPinned);
   const regularChats = DUMMY_CHATS.filter(chat => !chat.isPinned);
+  
+  // Track expanded state for each category
+  const [expandedCategories, setExpandedCategories] = React.useState<{[key: string]: boolean}>({
+    'BANDS': true,
+    'DRUMMERS': true,
+    'GUITARIST': true
+  });
+  
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }));
+  };
 
   return (
     <View style={styles.container}>
@@ -159,40 +286,67 @@ export default function ChatsScreen() {
         </TouchableOpacity>
       </View>
       
-      <FlatList
-        data={[
-          ...(pinnedChats.length > 0 ? [{ type: 'pinnedHeader' }] : []),
-          ...pinnedChats.map(chat => ({ type: 'chat', data: chat })),
-          ...(regularChats.length > 0 ? [{ type: 'regularHeader' }] : []),
-          ...regularChats.map(chat => ({ type: 'chat', data: chat })),
-        ]}
-        renderItem={({ item }) => {
-          if (item.type === 'pinnedHeader') {
-            return (
-              <View style={styles.sectionHeader}>
-                <Ionicons name="pin" size={16} color="rgba(255, 255, 255, 0.48)" />
-                <Text style={styles.sectionHeaderText}>ALL PINNED</Text>
-                <Text style={styles.sectionCount}>{pinnedChats.length}</Text>
-              </View>
-            );
-          } else if (item.type === 'regularHeader') {
-            return (
-              <View style={styles.sectionHeader}>
-                <Ionicons name="chatbubble-ellipses-outline" size={16} color="rgba(255, 255, 255, 0.48)" />
-                <Text style={styles.sectionHeaderText}>ALL CONVERSATIONS</Text>
-                <Text style={styles.sectionCount}>{regularChats.length}</Text>
-              </View>
-            );
-          } else {
-            return <ChatItem item={item.data} />;
+      {activeTab === 'Conversations' ? (
+        <FlatList
+          data={[
+            ...(pinnedChats.length > 0 ? [{ type: 'pinnedHeader' }] : []),
+            ...pinnedChats.map(chat => ({ type: 'chat', data: chat })),
+            ...(regularChats.length > 0 ? [{ type: 'regularHeader' }] : []),
+            ...regularChats.map(chat => ({ type: 'chat', data: chat })),
+          ]}
+          renderItem={({ item }) => {
+            if (item.type === 'pinnedHeader') {
+              return (
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="pin" size={16} color="rgba(255, 255, 255, 0.48)" />
+                  <Text style={styles.sectionHeaderText}>ALL PINNED</Text>
+                  <Text style={styles.sectionCount}>{pinnedChats.length}</Text>
+                </View>
+              );
+            } else if (item.type === 'regularHeader') {
+              return (
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="chatbubble-ellipses-outline" size={16} color="rgba(255, 255, 255, 0.48)" />
+                  <Text style={styles.sectionHeaderText}>ALL CONVERSATIONS</Text>
+                  <Text style={styles.sectionCount}>{regularChats.length}</Text>
+                </View>
+              );
+            } else if (item.type === 'chat' && item.data) {
+              return <ChatItem item={item.data} />;
+            }
+            return null;
+          }}
+          keyExtractor={(item, index) => 
+            item.type === 'chat' && item.data ? item.data.id : `${item.type}-${index}`
           }
-        }}
-        keyExtractor={(item, index) => 
-          item.type === 'chat' ? item.data.id : `${item.type}-${index}`
-        }
-        contentContainerStyle={styles.chatsList}
-        showsVerticalScrollIndicator={false}
-      />
+          contentContainerStyle={styles.chatsList}
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <FlatList
+          data={DUMMY_MATCHES}
+          renderItem={({ item }) => (
+            <View style={styles.categoryContainer}>
+              <CategoryHeader
+                category={item.category}
+                count={item.items.length}
+                isExpanded={expandedCategories[item.category]}
+                onToggle={() => toggleCategory(item.category)}
+              />
+              {expandedCategories[item.category] && (
+                <View style={styles.matchesList}>
+                  {item.items.map(matchItem => (
+                    <MatchItem key={matchItem.id} item={matchItem} />
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.matchesListContainer}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </View>
   );
 }
@@ -366,5 +520,75 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
+  },
+  // New styles for Matches tab
+  matchesListContainer: {
+    paddingHorizontal: 16,
+  },
+  categoryContainer: {
+    marginBottom: 16,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  categoryTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
+  },
+  matchesList: {
+    marginTop: 8,
+  },
+  matchItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  matchAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+  },
+  matchInfo: {
+    flex: 1,
+  },
+  matchNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  starIcon: {
+    marginRight: 4,
+  },
+  matchName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
+  },
+  matchType: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.48)',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
+    marginTop: 2,
+  },
+  sayHiButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  sayHiText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Poppins' : 'Roboto',
   },
 });
