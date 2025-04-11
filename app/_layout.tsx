@@ -5,18 +5,18 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useCallback } from 'react';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { SplashScreen as CustomSplashScreen } from '@/components/SplashScreen';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
+// Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     'Poppins-Regular': require('../assets/fonts/SpaceMono-Regular.ttf'), // Using SpaceMono as fallback
     'Poppins-Medium': require('../assets/fonts/SpaceMono-Regular.ttf'),  // Using SpaceMono as fallback
@@ -24,22 +24,24 @@ export default function RootLayout() {
     'Poppins-Bold': require('../assets/fonts/SpaceMono-Regular.ttf'),    // Using SpaceMono as fallback
     'AbrilFatface-Regular': require('../assets/fonts/SpaceMono-Regular.ttf'), // Using SpaceMono as fallback temporarily
   });
-  const [splashAnimationComplete, setSplashAnimationComplete] = useState(false);
 
-  useEffect(() => {
-    if (loaded) {
-      // Hide the Expo splash screen
-      SplashScreen.hideAsync();
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded || fontError) {
+      await SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [fontsLoaded, fontError]);
 
-  // Don't render anything until the fonts are loaded and splash screen animation is done
-  if (!loaded || !splashAnimationComplete) {
-    return loaded ? <CustomSplashScreen onAnimationComplete={() => setSplashAnimationComplete(true)} /> : null;
+  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
+  useEffect(() => {
+    if (fontError) throw fontError;
+  }, [fontError]);
+
+  if (!fontsLoaded) {
+    return null;
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack
           screenOptions={{
@@ -71,25 +73,7 @@ export default function RootLayout() {
           <Stack.Screen name="matches" />
           <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
           <Stack.Screen
-            name="matching"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
             name="filters"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="chats"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="events"
             options={{
               headerShown: false,
             }}

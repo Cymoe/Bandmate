@@ -17,6 +17,7 @@ import { StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { GestureDetector, Gesture, GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
+import Svg, { Path, G, Defs, ClipPath, Rect } from 'react-native-svg';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.15;
@@ -645,10 +646,21 @@ export default function MatchingScreen() {
             </View>
             <View style={styles.headerIcons}>
               <TouchableOpacity>
-                <Ionicons name="notifications-outline" size={28} color="rgba(255, 255, 255, 0.48)" />
+                <Svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                  <G clipPath="url(#clip0_358_10140)">
+                    <Path d="M14 25.667C15.2833 25.667 16.3333 24.617 16.3333 23.3337H11.6667C11.6667 24.617 12.7167 25.667 14 25.667ZM21 18.667V12.8337C21 9.25199 19.0983 6.25366 15.75 5.46033V4.66699C15.75 3.69866 14.9683 2.91699 14 2.91699C13.0317 2.91699 12.25 3.69866 12.25 4.66699V5.46033C8.91333 6.25366 7 9.24033 7 12.8337V18.667L4.66667 21.0003V22.167H23.3333V21.0003L21 18.667ZM18.6667 19.8337H9.33333V12.8337C9.33333 9.94033 11.095 7.58366 14 7.58366C16.905 7.58366 18.6667 9.94033 18.6667 12.8337V19.8337ZM8.84333 4.76033L7.175 3.09199C4.375 5.22699 2.53167 8.51699 2.36833 12.2503H4.70167C4.87667 9.15866 6.46333 6.45199 8.84333 4.76033ZM23.2983 12.2503H25.6317C25.4567 8.51699 23.6133 5.22699 20.825 3.09199L19.1683 4.76033C21.525 6.45199 23.1233 9.15866 23.2983 12.2503Z" fill="white" fillOpacity="0.48"/>
+                  </G>
+                  <Defs>
+                    <ClipPath id="clip0_358_10140">
+                      <Rect width="28" height="28" fill="white"/>
+                    </ClipPath>
+                  </Defs>
+                </Svg>
               </TouchableOpacity>
               <TouchableOpacity>
-                <Ionicons name="menu-outline" size={28} color="rgba(255, 255, 255, 0.48)" />
+                <Svg width="22" height="14" viewBox="0 0 22 14" fill="none">
+                  <Path d="M9.83333 14C9.50278 14 9.22569 13.8882 9.00208 13.6646C8.77847 13.441 8.66667 13.1639 8.66667 12.8333C8.66667 12.5028 8.77847 12.2257 9.00208 12.0021C9.22569 11.7785 9.50278 11.6667 9.83333 11.6667H12.1667C12.4972 11.6667 12.7743 11.7785 12.9979 12.0021C13.2215 12.2257 13.3333 12.5028 13.3333 12.8333C13.3333 13.1639 13.2215 13.441 12.9979 13.6646C12.7743 13.8882 12.4972 14 12.1667 14H9.83333ZM5.16667 8.16667C4.83611 8.16667 4.55903 8.05486 4.33542 7.83125C4.11181 7.60764 4 7.33056 4 7C4 6.66944 4.11181 6.39236 4.33542 6.16875C4.55903 5.94514 4.83611 5.83333 5.16667 5.83333H16.8333C17.1639 5.83333 17.441 5.94514 17.6646 6.16875C17.8882 6.39236 18 6.66944 18 7C18 7.33056 17.8882 7.60764 17.6646 7.83125C17.441 8.05486 17.1639 8.16667 16.8333 8.16667H5.16667ZM1.66667 2.33333C1.33611 2.33333 1.05903 2.22153 0.835417 1.99792C0.611806 1.77431 0.5 1.49722 0.5 1.16667C0.5 0.836111 0.611806 0.559028 0.835417 0.335417C1.05903 0.111806 1.33611 0 1.66667 0H20.3333C20.6639 0 20.941 0.111806 21.1646 0.335417C21.3882 0.559028 21.5 0.836111 21.5 1.16667C21.5 1.49722 21.3882 1.77431 21.1646 1.99792C20.941 2.22153 20.6639 2.33333 20.3333 2.33333H1.66667Z" fill="white" fillOpacity="0.48"/>
+                </Svg>
               </TouchableOpacity>
             </View>
           </View>
@@ -674,7 +686,7 @@ export default function MatchingScreen() {
               }
             }}
           >
-            <Ionicons name="play-skip-back" size={24} color="#121212" />
+            <Ionicons name="play-skip-back" size={28} color="#121212" />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -682,7 +694,7 @@ export default function MatchingScreen() {
             onPress={() => !swiping && forceSwipe('left')}
             activeOpacity={0.7}
           >
-            <Ionicons name="close" size={40} color="#121212" />
+            <Ionicons name="close" size={44} color="#121212" />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -690,7 +702,7 @@ export default function MatchingScreen() {
             onPress={() => !swiping && forceSwipe('up')}
             activeOpacity={0.7}
           >
-            <Ionicons name="arrow-up" size={40} color="#121212" />
+            <Ionicons name="arrow-up" size={44} color="#121212" />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -698,14 +710,14 @@ export default function MatchingScreen() {
             onPress={() => !swiping && forceSwipe('right')}
             activeOpacity={0.7}
           >
-            <Ionicons name="heart" size={40} color="#121212" />
+            <Ionicons name="heart" size={44} color="#121212" />
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={[styles.actionButton, styles.boostButton]}
             activeOpacity={0.7}
           >
-            <Ionicons name="flash" size={24} color="#121212" />
+            <Ionicons name="flash" size={28} color="#121212" />
           </TouchableOpacity>
         </View>
         
@@ -727,20 +739,20 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     position: 'absolute',
-    top: 0,
+    top: 130,
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     zIndex: 9000,
     elevation: 9000,
-    paddingBottom: 100, // More space at bottom for buttons
+    paddingBottom: 100,
   },
   card: {
     position: 'absolute',
     width: SCREEN_WIDTH * 0.9,
-    height: SCREEN_HEIGHT * 0.62,
+    height: SCREEN_HEIGHT * 0.65,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#333', // Fallback color while image loads
@@ -774,10 +786,10 @@ const styles = StyleSheet.create({
   header: {
     position: 'absolute',
     width: '100%',
-    height: 104,
+    height: 110,
     left: 0,
     top: 0,
-    paddingTop: 64,
+    paddingTop: 70,
     paddingHorizontal: 16,
     paddingBottom: 12,
     backgroundColor: 'rgba(18, 18, 18, 0.64)',
@@ -806,7 +818,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'flex-start',
-    gap: 8,
+    gap: 2,
     width: 150,
     height: 28,
   },
@@ -1029,7 +1041,7 @@ const styles = StyleSheet.create({
   },
   actionButtonsContainer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: Platform.OS === 'ios' ? 110 : 100,
     left: 0,
     right: 0,
     flexDirection: 'row',
@@ -1051,30 +1063,30 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   rewindButton: {
-    width: 48,
-    height: 48,
+    width: 54,
+    height: 54,
     backgroundColor: '#FF4B4B',
     transform: [{ rotate: '-180deg' }],
   },
   nopeButton: {
-    width: 56,
-    height: 56,
+    width: 64,
+    height: 64,
     backgroundColor: '#F41857',
   },
   superLikeButton: {
-    width: 56,
-    height: 56,
+    width: 64,
+    height: 64,
     backgroundColor: '#007AFF',
     transform: [{ rotate: '-90deg' }],
   },
   likeButton: {
-    width: 56,
-    height: 56,
+    width: 64,
+    height: 64,
     backgroundColor: '#1ED760',
   },
   boostButton: {
-    width: 48,
-    height: 48,
+    width: 54,
+    height: 54,
     backgroundColor: '#8400E7',
     transform: [{ rotate: '-180deg' }],
   },
