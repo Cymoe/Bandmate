@@ -698,10 +698,12 @@ export default function MatchingScreen() {
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View style={styles.userInfo}>
-              <Image 
-                source={{ uri: 'https://picsum.photos/32/32' }}
-                style={styles.userAvatar}
-              />
+              <TouchableOpacity onPress={() => router.push('/profile')}>
+                <Image 
+                  source={{ uri: 'https://picsum.photos/32/32' }}
+                  style={styles.userAvatar}
+                />
+              </TouchableOpacity>
               <View style={styles.userTexts}>
                 <Text style={styles.greeting}>Hi Viktor 👋</Text>
                 <Text style={styles.subgreeting}>Hope you had a great day!</Text>
