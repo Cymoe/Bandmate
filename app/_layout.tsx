@@ -86,6 +86,10 @@ export default function RootLayout() {
             name="band-profile" 
             options={{ headerShown: true }} 
           />
+          <Stack.Screen 
+            name="chat-detail" 
+            options={{ headerShown: false }} 
+          />
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style="auto" />

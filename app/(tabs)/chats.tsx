@@ -143,7 +143,10 @@ const DUMMY_MATCHES = [
 ];
 
 const ChatItem = ({ item }: { item: any }) => (
-  <TouchableOpacity style={styles.chatItem}>
+  <TouchableOpacity 
+    style={styles.chatItem}
+    onPress={() => router.push('/chat-detail')}
+  >
     <Image source={item.image} style={styles.avatar} />
     <View style={styles.chatInfo}>
       <View style={styles.chatHeader}>
@@ -179,7 +182,10 @@ const MatchItem = ({ item }: { item: any }) => (
       </View>
       <Text style={styles.matchType}>{item.type} • {item.date}</Text>
     </View>
-    <TouchableOpacity style={styles.sayHiButton}>
+    <TouchableOpacity 
+      style={styles.sayHiButton}
+      onPress={() => router.push('/chat-detail')}
+    >
       <Ionicons name="hand-right" size={16} color="#FFFFFF" />
       <Text style={styles.sayHiText}>Say Hi</Text>
     </TouchableOpacity>
