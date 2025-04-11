@@ -44,6 +44,7 @@ interface MeetingMessage extends BaseMessage {
   type: 'meeting';
   time: string;
   address: string;
+  note?: string;
 }
 
 type Message = TextMessage | MeetingMessage;
@@ -117,7 +118,6 @@ const Message = ({
       case 'delivered':
         return (
           <View style={styles.statusContainer}>
-            <Ionicons name="checkmark" size={16} color="#828186" />
             <Ionicons name="checkmark" size={16} color="#828186" style={styles.overlappingCheck} />
           </View>
         );
@@ -230,15 +230,7 @@ export default function ChatDetailScreen() {
       date: '2024-03-19',
       status: 'read',
       type: 'message'
-    },
-    {
-      id: '3',
-      type: 'meeting',
-      date: 'March 20, 2024',
-      time: '7:00 PM',
-      address: 'The Troubadour, 9081 Santa Monica Blvd',
-      isUser: false,
-    },
+    }
   ]);
   const scrollViewRef = React.useRef<ScrollView>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -331,6 +323,27 @@ export default function ChatDetailScreen() {
     const newSuggestions = generateMessageSuggestions(userProfile, conversationContext);
     setSuggestions(newSuggestions);
   }, [messages]);
+
+  // Add useEffect to handle meeting card params
+  useEffect(() => {
+    if (params.showMeetingCard === '1') {
+      const newMeeting: MeetingMessage = {
+        id: Date.now().toString(),
+        type: 'meeting',
+        date: params.meetingDate as string,
+        time: params.meetingTime as string,
+        address: params.meetingLocation as string,
+        isUser: true,
+      };
+      
+      // Add note if provided
+      if (params.meetingNote) {
+        newMeeting.note = params.meetingNote as string;
+      }
+
+      setMessages(prev => [...prev, newMeeting]);
+    }
+  }, [params.showMeetingCard]);
 
   const handleSuggestionSelect = (suggestion: string) => {
     setMessage(suggestion);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Location from 'expo-location';
@@ -12,64 +12,37 @@ interface LocationItem {
   name: string;
   vicinity: string;
   state: string;
-  country: string;
+  countryCode: string;
   distance: number;
   latitude: number;
   longitude: number;
 }
 
-const LocationItem = ({ name, vicinity, state, country, distance, id }: LocationItem) => (
-  <TouchableOpacity 
-    style={styles.locationItem}
-    onPress={() => {
-      router.back();
-    }}
-  >
-    <View style={styles.locationContent}>
-      <View style={styles.nameContainer}>
-        <Text style={styles.cityText}>
-          {id === 'current_location' ? 'Current Location' : name}
-        </Text>
-        {id === 'current_location' && <LocationPin />}
-      </View>
-      <View style={styles.locationDetails}>
-        <Text style={styles.stateCountryText}>{`${vicinity || state}, ${country}`}</Text>
-        {id !== 'current_location' && (
-          <>
-            <View style={styles.dot} />
-            <Text style={styles.distanceText}>{formatDistance(distance)}</Text>
-          </>
-        )}
-      </View>
-    </View>
-    <View style={styles.separator} />
-  </TouchableOpacity>
-);
-
-const formatDistance = (distance: number): string => {
-  if (distance < 1) {
-    return `${Math.round(distance * 1000)}m`;
-  }
-  return `${Math.round(distance)}km`;
-};
-
-const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-};
-
 export default function SelectLocation() {
+  const params = useLocalSearchParams();
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locations, setLocations] = useState<LocationItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  const formatDistance = (distance: number): string => {
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)}m`;
+    }
+    return `${Math.round(distance)}km`;
+  };
 
   useEffect(() => {
     (async () => {
@@ -120,19 +93,22 @@ export default function SelectLocation() {
         
         currentLocation = {
           id: 'current_location',
-          name: cityComponent?.long_name || 'Current Location',
-          vicinity: '',
+          name: 'Current Location',
+          vicinity: cityComponent?.long_name || '',
           state: stateComponent?.short_name || '',
-          country: countryComponent?.short_name || 'US',
+          countryCode: countryComponent?.short_name || 'US',
           distance: 0,
           latitude: location.latitude,
           longitude: location.longitude
         };
+
+        // Add current location to locations array immediately
+        setLocations([currentLocation]);
       }
 
       // Then fetch nearby venues
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location.latitude},${location.longitude}&radius=5000&type=establishment&key=${GOOGLE_PLACES_API_KEY}`
+        `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location.latitude},${location.longitude}&radius=15000&type=establishment&key=${GOOGLE_PLACES_API_KEY}`
       );
       const data = await response.json();
 
@@ -151,14 +127,14 @@ export default function SelectLocation() {
               name: place.name,
               vicinity: place.vicinity,
               state: place.vicinity?.split(',').pop()?.trim() || '',
-              country: 'US',
+              countryCode: 'US',
               latitude: place.geometry.location.lat,
               longitude: place.geometry.location.lng,
               distance
             };
           })
           .sort((a: LocationItem, b: LocationItem) => a.distance - b.distance)
-          .slice(0, 9); // Get 9 nearby locations to make room for current location
+          .slice(0, 9); // Get 9 nearby locations
 
         // Combine current location with nearby locations
         setLocations(currentLocation ? [currentLocation, ...nearbyLocations] : nearbyLocations);
@@ -177,7 +153,7 @@ export default function SelectLocation() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${query}&location=${userLocation.latitude},${userLocation.longitude}&radius=5000&key=${GOOGLE_PLACES_API_KEY}`
+        `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${query}&location=${userLocation.latitude},${userLocation.longitude}&radius=15000&key=${GOOGLE_PLACES_API_KEY}`
       );
       const data = await response.json();
 
@@ -187,7 +163,7 @@ export default function SelectLocation() {
           name: place.name,
           vicinity: place.formatted_address,
           state: place.formatted_address?.split(',').pop()?.trim() || '',
-          country: 'US',
+          countryCode: 'US',
           latitude: place.geometry.location.lat,
           longitude: place.geometry.location.lng,
           distance: calculateDistance(
@@ -206,6 +182,56 @@ export default function SelectLocation() {
       setIsLoading(false);
     }
   };
+
+  const handleLocationSelect = (selectedLocation: any) => {
+    if (params.returnTo === 'meeting-summary') {
+      router.push({
+        pathname: '/meeting-summary',
+        params: {
+          locationName: selectedLocation.name,
+          countryCode: selectedLocation.countryCode,
+          state: selectedLocation.state,
+          vicinity: selectedLocation.vicinity,
+          date: params.prevDate,
+          note: params.prevNote
+        }
+      });
+    } else {
+      router.push({
+        pathname: '/select-date',
+        params: {
+          locationName: selectedLocation.name,
+          countryCode: selectedLocation.countryCode,
+          state: selectedLocation.state,
+          vicinity: selectedLocation.vicinity
+        }
+      });
+    }
+  };
+
+  const LocationItem = ({ location }: { location: any }) => (
+    <TouchableOpacity
+      style={styles.locationItem}
+      onPress={() => handleLocationSelect(location)}
+    >
+      <View style={styles.locationInfo}>
+        {location.name === 'Current Location' && (
+          <View style={styles.currentLocationPin}>
+            <Ionicons name="location" size={12} color="#FF3B30" />
+          </View>
+        )}
+        <View style={styles.locationTextContainer}>
+          <Text style={styles.locationName}>{location.name}</Text>
+          <Text style={styles.locationAddress}>
+            {location.vicinity || location.state}, {location.countryCode}
+          </Text>
+        </View>
+      </View>
+      {location.distance !== undefined && (
+        <Text style={styles.locationDistance}>{formatDistance(location.distance)}</Text>
+      )}
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -236,7 +262,7 @@ export default function SelectLocation() {
       {/* Location List */}
       <ScrollView style={styles.locationList}>
         {locations.map((location) => (
-          <LocationItem key={location.id} {...location} />
+          <LocationItem key={location.id} location={location} />
         ))}
       </ScrollView>
     </View>
@@ -305,57 +331,46 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   locationItem: {
-    width: '100%',
-    height: 61,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#262626',
   },
-  locationContent: {
-    gap: 8,
+  locationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
-  cityText: {
+  locationTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  currentLocationPin: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  locationName: {
     fontFamily: 'Poppins',
     fontSize: 16,
-    lineHeight: 18,
-    letterSpacing: -0.5,
     color: '#FFFFFF',
+    marginBottom: 4,
   },
-  locationDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  stateCountryText: {
+  locationAddress: {
     fontFamily: 'Poppins',
-    fontSize: 12,
-    lineHeight: 18,
-    letterSpacing: -1,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.64)',
   },
-  dot: {
-    width: 3,
-    height: 3,
-    backgroundColor: '#828282',
-    borderRadius: 100,
-  },
-  distanceText: {
+  locationDistance: {
     fontFamily: 'Poppins',
-    fontWeight: '300',
-    fontSize: 12,
-    lineHeight: 18,
-    letterSpacing: -1,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  separator: {
-    width: '100%',
-    height: 1,
-    backgroundColor: '#262626',
-    marginTop: 16,
-  },
-  nameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.48)',
+    marginLeft: 8,
   },
 }); 
