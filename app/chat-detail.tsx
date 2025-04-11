@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -17,6 +17,49 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import Svg, { Path, G, Rect, ClipPath, Defs } from 'react-native-svg';
+import MessageTimestamp from '@/components/MessageTimestamp';
+import MeetingCard from '@/components/MeetingCard';
+import MessageSuggestions from '@/components/MessageSuggestions';
+import { generateMessageSuggestions } from '@/utils/messageSuggestions';
+
+type MessageStatus = 'sent' | 'delivered' | 'read';
+
+interface BaseMessage {
+  id: string;
+  isUser: boolean;
+  date: string;
+  isLiked?: boolean;
+  isTranslated?: boolean;
+  originalText?: string;
+}
+
+interface TextMessage extends BaseMessage {
+  type?: 'message';
+  text: string;
+  timestamp: string;
+  status?: MessageStatus;
+}
+
+interface MeetingMessage extends BaseMessage {
+  type: 'meeting';
+  time: string;
+  address: string;
+}
+
+type Message = TextMessage | MeetingMessage;
+
+interface MeetingCardProps {
+  date: string;
+  time: string;
+  address: string;
+  onAddToCalendar?: () => void;
+}
+
+interface MessageTimestampProps {
+  date: string;
+  isExpanded: boolean;
+  onToggle: () => void;
+}
 
 // Better SparkleIcon component matching the design
 const SparkleIcon = () => (
@@ -32,30 +75,174 @@ const SparkleIcon = () => (
 );
 
 // Message component to display individual messages
-const Message = ({ text, isUser, timestamp }: { text: string; isUser: boolean; timestamp?: string }) => (
-  <View style={[styles.messageRow, isUser ? styles.userMessageRow : styles.otherMessageRow]}>
-    {!isUser && (
-      <Image 
-        source={require('@/assets/images/avatar.png')} 
-        style={styles.messageAvatar} 
-      />
-    )}
-    <View style={[styles.messageBubble, isUser ? styles.userMessageBubble : styles.otherMessageBubble]}>
-      <Text style={styles.messageText}>{text}</Text>
-      {timestamp && <Text style={styles.messageTimestamp}>{timestamp}</Text>}
+const Message = ({ 
+  text, 
+  isUser, 
+  timestamp, 
+  status,
+  isLiked = false,
+  isTranslated = false,
+  originalText,
+  onLike,
+  onTranslate,
+  onReply,
+  onReport,
+}: { 
+  text: string; 
+  isUser: boolean; 
+  timestamp?: string;
+  status?: MessageStatus;
+  isLiked?: boolean;
+  isTranslated?: boolean;
+  originalText?: string;
+  onLike?: () => void;
+  onTranslate?: () => void;
+  onReply?: () => void;
+  onReport?: () => void;
+}) => {
+  const [isHighlighted, setIsHighlighted] = React.useState(false);
+  const [showOriginal, setShowOriginal] = React.useState(false);
+
+  const renderMessageStatus = () => {
+    if (status === 'read') {
+      return (
+        <View style={styles.statusContainer}>
+          <Ionicons name="checkmark" size={16} color="#FF4D00" />
+        </View>
+      );
+    }
+    switch (status) {
+      case 'sent':
+        return <Ionicons name="checkmark" size={16} color="#828186" />;
+      case 'delivered':
+        return (
+          <View style={styles.statusContainer}>
+            <Ionicons name="checkmark" size={16} color="#828186" />
+            <Ionicons name="checkmark" size={16} color="#828186" style={styles.overlappingCheck} />
+          </View>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <View style={[styles.messageRow, isUser ? styles.userMessageRow : styles.otherMessageRow]}>
+      {!isUser && (
+        <Image 
+          source={require('@/assets/images/avatar.png')} 
+          style={styles.messageAvatar} 
+        />
+      )}
+      
+      <View style={styles.messageContent}>
+        <TouchableOpacity 
+          style={[
+            styles.messageBubble, 
+            isUser ? styles.userMessageBubble : styles.otherMessageBubble,
+            isHighlighted && styles.highlightedBubble,
+            isTranslated && styles.translatedBubble
+          ]}
+          onPress={() => setIsHighlighted(!isHighlighted)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.messageText}>
+            {isTranslated && showOriginal ? originalText : text}
+          </Text>
+          <View style={styles.messageFooter}>
+            {timestamp && <Text style={styles.messageTimestamp}>{timestamp}</Text>}
+            {isUser && renderMessageStatus()}
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.messageActions}>
+          {isTranslated ? (
+            <TouchableOpacity onPress={() => setShowOriginal(!showOriginal)}>
+              <Text style={styles.translateText}>
+                {showOriginal ? 'See translation' : 'See original'}
+              </Text>
+            </TouchableOpacity>
+          ) : onTranslate && (
+            <TouchableOpacity onPress={onTranslate}>
+              <Text style={styles.translateText}>Translate</Text>
+            </TouchableOpacity>
+          )}
+
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={onLike}
+            >
+              <Ionicons 
+                name={isLiked ? "heart" : "heart-outline"} 
+                size={12} 
+                color={isLiked ? "#EE1045" : "#828282"} 
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={onReply}
+            >
+              <Ionicons 
+                name="arrow-undo-outline" 
+                size={12} 
+                color="#828282" 
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={onReport}
+            >
+              <Ionicons 
+                name="ellipsis-horizontal" 
+                size={12} 
+                color="#828282" 
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 export default function ChatDetailScreen() {
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([
-    { id: '1', text: 'Hey, I really liked your playlist! The lo-fi beats are perfect for studying.', isUser: false, timestamp: '10:45 AM' },
-    { id: '2', text: 'Thanks! I made it during finals week last semester 😅', isUser: true, timestamp: '10:47 AM' },
+  const [expandedDates, setExpandedDates] = useState<{[key: string]: boolean}>({});
+  const [messages, setMessages] = useState<Message[]>([
+    { 
+      id: '1', 
+      text: 'Hey, I really liked your playlist! The lo-fi beats are perfect for studying.', 
+      isUser: false, 
+      timestamp: '10:45 AM',
+      date: '2024-03-19',
+      type: 'message'
+    },
+    { 
+      id: '2', 
+      text: 'Thanks! I made it during finals week last semester 😅', 
+      isUser: true, 
+      timestamp: '10:47 AM',
+      date: '2024-03-19',
+      status: 'read',
+      type: 'message'
+    },
+    {
+      id: '3',
+      type: 'meeting',
+      date: 'March 20, 2024',
+      time: '7:00 PM',
+      address: 'The Troubadour, 9081 Santa Monica Blvd',
+      isUser: false,
+    },
   ]);
   const scrollViewRef = React.useRef<ScrollView>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
 
   // Shared playlists data
   const sharedPlaylists = [
@@ -71,21 +258,36 @@ export default function ChatDetailScreen() {
     }
   ];
   
+  const toggleDateExpansion = (date: string) => {
+    setExpandedDates(prev => ({
+      ...prev,
+      [date]: !prev[date],
+    }));
+  };
+
+  const groupedMessages = messages.reduce((acc, msg) => {
+    if (!msg.date) return acc;
+    if (!acc[msg.date]) acc[msg.date] = [];
+    acc[msg.date].push(msg);
+    return acc;
+  }, {} as {[key: string]: typeof messages});
+  
   // Handle sending a new message
   const sendMessage = () => {
     if (message.trim().length === 0) return;
     
-    const newMessage = {
+    const newMessage: TextMessage = {
       id: Date.now().toString(),
       text: message,
       isUser: true,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      date: new Date().toLocaleDateString(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'sent'
     };
     
     setMessages(prev => [...prev, newMessage]);
     setMessage('');
     
-    // Scroll to bottom after sending message
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
@@ -93,6 +295,125 @@ export default function ChatDetailScreen() {
   
   // The bottom of keyboard input field should respect safe area
   const bottomPadding = Platform.OS === 'ios' ? insets.bottom : 0;
+
+  // Mock user profile for demo - replace with actual profile data
+  const userProfile = {
+    interests: ['Music Production', 'Live Performance'],
+    occupation: 'Solo Artist',
+    location: 'Los Angeles',
+    playlists: [
+      {
+        title: 'Lo-fi beats to study while crying',
+        genre: 'Lo-fi'
+      }
+    ]
+  };
+
+  useEffect(() => {
+    // Get the last message
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage) return;
+
+    // Convert messages to the format expected by generateMessageSuggestions
+    const conversationContext = {
+      lastMessageTimestamp: new Date(
+        'timestamp' in lastMessage ? lastMessage.timestamp : lastMessage.date
+      ),
+      lastMessageFromUser: lastMessage.isUser,
+      messages: messages.map(msg => ({
+        text: 'text' in msg ? msg.text : `Meeting proposed for ${msg.date} at ${msg.time}`,
+        isUser: msg.isUser,
+        timestamp: new Date('timestamp' in msg ? msg.timestamp : msg.date)
+      }))
+    };
+
+    // Generate new suggestions
+    const newSuggestions = generateMessageSuggestions(userProfile, conversationContext);
+    setSuggestions(newSuggestions);
+  }, [messages]);
+
+  const handleSuggestionSelect = (suggestion: string) => {
+    setMessage(suggestion);
+  };
+
+  const handleLike = (messageId: string) => {
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId ? { ...msg, isLiked: !msg.isLiked } : msg
+    ));
+  };
+
+  const handleTranslate = async (messageId: string) => {
+    setMessages(prev => prev.map(msg => {
+      if (msg.id === messageId && 'type' in msg && msg.type !== 'meeting') {
+        return {
+          ...msg,
+          isTranslated: true,
+          originalText: msg.text,
+          text: "Translated text would go here", // Replace with actual translation
+        };
+      }
+      return msg;
+    }));
+  };
+
+  const handleReply = (messageId: string) => {
+    const message = messages.find(msg => msg.id === messageId);
+    if (message && 'type' in message && message.type !== 'meeting') {
+      // TODO: Implement reply UI
+      console.log('Reply to:', message.text);
+    }
+  };
+
+  const handleReport = (messageId: string) => {
+    // TODO: Implement report functionality
+    console.log('Report message:', messageId);
+  };
+
+  const handleCreateMeeting = () => {
+    router.push('/select-location');
+  };
+
+  // Update the message rendering to include new handlers
+  const renderMessages = () => {
+    return Object.entries(groupedMessages).map(([date, msgs]) => (
+      <View key={date} style={styles.dateGroup}>
+        <MessageTimestamp 
+          date={date} 
+          isExpanded={expandedDates[date]} 
+          onToggle={() => toggleDateExpansion(date)}
+        />
+        {msgs.map(msg => {
+          if (msg.type === 'meeting') {
+            return (
+              <MeetingCard
+                key={msg.id}
+                date={msg.date}
+                time={msg.time}
+                address={msg.address}
+                onAddToCalendar={() => {/* TODO: Implement calendar integration */}}
+              />
+            );
+          }
+          return (
+            <Message
+              key={msg.id}
+              text={'text' in msg ? msg.text : ''}
+              isUser={msg.isUser}
+              timestamp={'timestamp' in msg ? msg.timestamp : undefined}
+              status={'status' in msg ? msg.status : undefined}
+              isLiked={msg.isLiked}
+              isTranslated={msg.isTranslated}
+              originalText={msg.originalText}
+              onLike={() => handleLike(msg.id)}
+              onTranslate={() => handleTranslate(msg.id)}
+              onReply={() => handleReply(msg.id)}
+              onReport={() => handleReport(msg.id)}
+            />
+          );
+        })}
+      </View>
+    ));
+  };
 
   return (
     <KeyboardAvoidingView 
@@ -154,10 +475,11 @@ export default function ChatDetailScreen() {
         <View style={styles.matchInfoLine} />
       </View>
       
-      <ScrollView 
-        style={styles.messageContainer}
+      <ScrollView
         ref={scrollViewRef}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        style={styles.messagesContainer}
+        contentContainerStyle={styles.messagesContent}
+        showsVerticalScrollIndicator={false}
       >
         {/* Shared playlists section */}
         <View style={styles.sharedPlaylistsContainer}>
@@ -169,29 +491,41 @@ export default function ChatDetailScreen() {
           ))}
         </View>
         
+        {/* Message suggestions */}
+        {suggestions.length > 0 && (
+          <MessageSuggestions
+            suggestions={suggestions}
+            onSelectSuggestion={handleSuggestionSelect}
+            userProfile={userProfile}
+          />
+        )}
+        
         {/* Chat messages */}
-        <View style={styles.messagesContainer}>
-          {messages.map(msg => (
-            <Message 
-              key={msg.id} 
-              text={msg.text} 
-              isUser={msg.isUser}
-              timestamp={msg.timestamp}
-            />
-          ))}
-        </View>
+        {renderMessages()}
       </ScrollView>
       
       {/* Message input */}
-      <View style={[styles.inputContainer, { paddingBottom: bottomPadding || 16 }]}>
+      <View style={styles.inputContainer}>
         <View style={styles.messageInputRow}>
+          <TouchableOpacity 
+            style={styles.calendarButton}
+            onPress={handleCreateMeeting}
+          >
+            <Ionicons 
+              name="calendar-outline" 
+              size={22} 
+              color="#B3B3B3" 
+              style={styles.calendarIcon}
+            />
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.emojiButton}>
             <Ionicons name="happy-outline" size={24} color="#121212" />
           </TouchableOpacity>
           
           <TextInput
             style={styles.input}
-            placeholder="Driving at night"
+            placeholder="Type your message..."
             placeholderTextColor="rgba(0, 0, 0, 0.5)"
             value={message}
             onChangeText={setMessage}
@@ -214,6 +548,17 @@ export default function ChatDetailScreen() {
         </View>
         <View style={styles.homeIndicator} />
       </View>
+
+      {/* Meeting Modal will be added in a separate component */}
+      {showMeetingModal && (
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMeetingModal(false)}
+        >
+          {/* Meeting creation UI will go here */}
+        </TouchableOpacity>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -360,6 +705,9 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     marginBottom: 4,
   },
+  messageContent: {
+    flexDirection: 'column',
+  },
   messageBubble: {
     maxWidth: '75%',
     padding: 12,
@@ -392,34 +740,63 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   inputContainer: {
-    width: '100%',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    backgroundColor: '#121212',
-    borderTopWidth: 0.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  messageInputRow: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: 375,
+    height: 90,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    padding: 12,
+    paddingBottom: 34,
+    gap: 6,
+    backgroundColor: 'rgba(38, 38, 38, 0.64)',
+    backdropFilter: 'blur(16px)',
+    zIndex: 10,
+  },
+  messageInputRow: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+    gap: 10,
+    height: 44,
+    backgroundColor: '#121212',
+    borderWidth: 1,
+    borderColor: '#121212',
     borderRadius: 100,
-    paddingHorizontal: 12,
-    height: 56,
+  },
+  calendarButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#121212',
+    borderRadius: 100,
+  },
+  calendarIcon: {
+    width: 22,
+    height: 22,
+    color: '#B3B3B3',
   },
   emojiButton: {
-    marginRight: 8,
     width: 32,
     height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
   input: {
+    width: 269,
+    height: 16,
+    fontFamily: 'Poppins',
+    fontStyle: 'normal',
+    fontWeight: '400',
+    fontSize: 14,
+    lineHeight: 18,
+    color: '#828186',
+    padding: 0,
     flex: 1,
-    height: 56,
-    color: '#000000',
-    fontFamily: 'Poppins-Regular',
-    fontSize: 16,
   },
   sendButton: {
     width: 40,
@@ -442,5 +819,63 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 10,
     marginBottom: Platform.OS === 'ios' ? 5 : 5,
+  },
+  highlightedBubble: {
+    backgroundColor: '#FFFFFF',
+  },
+  translatedBubble: {
+    backgroundColor: '#262626',
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  overlappingCheck: {
+    marginLeft: -8,
+  },
+  messageFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+    marginTop: 4,
+  },
+  messageActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  translateText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 12,
+    color: '#828282',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  actionButton: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  messagesContent: {
+    paddingBottom: 20,
+  },
+  dateGroup: {
+    marginBottom: 16,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 }); 
