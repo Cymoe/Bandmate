@@ -34,7 +34,7 @@ type Profile = {
   genres: string[];
   commonMatches: number;
   bio?: string;
-  image?: string;
+  image?: any;
   monthlyViews?: number;
 };
 
@@ -55,7 +55,7 @@ export default function MatchingScreen() {
       genres: ['Blues', 'Rock', 'Soul'],
       commonMatches: 4,
       bio: 'Lead guitarist looking for a band. Into classic rock and blues.',
-      image: 'https://picsum.photos/400/600',
+      image: require('../../assets/images/artic.png'),
       monthlyViews: 528
     },
     {
@@ -68,7 +68,7 @@ export default function MatchingScreen() {
       genres: ['Jazz', 'Soul', 'R&B'],
       commonMatches: 2,
       bio: 'Vocalist seeking band members. Love jazz and soul music.',
-      image: 'https://picsum.photos/400/601',
+      image: require('../../assets/images/avril.png'),
       monthlyViews: 412
     },
     {
@@ -81,7 +81,7 @@ export default function MatchingScreen() {
       genres: ['Funk', 'Jazz', 'Electronic'],
       commonMatches: 6,
       bio: 'Electronic funk band looking for keyboardist.',
-      image: 'https://picsum.photos/400/602',
+      image: require('../../assets/images/drummer.png'),
       monthlyViews: 743
     }
   ]);
@@ -457,7 +457,7 @@ export default function MatchingScreen() {
     return (
       <>
         <Image
-          source={{ uri: profile.image }}
+          source={profile.image}
           style={styles.cardBackground}
           resizeMode="cover"
           fadeDuration={0}
@@ -597,30 +597,10 @@ export default function MatchingScreen() {
     setImagesLoaded(initialLoadedState);
     
     const preloadImages = async () => {
-      const imageLoadPromises = profiles.map(profile => {
-        if (profile.image) {
-          return Image.prefetch(profile.image)
-            .then(() => {
-              setImagesLoaded(prev => ({...prev, [profile.id]: true}));
-              return true;
-            })
-            .catch(err => {
-              console.log('Image prefetch error:', err);
-              setImagesLoaded(prev => ({...prev, [profile.id]: true}));
-              return false;
-            });
-        }
-        return Promise.resolve(true);
+      // For local images, we can just mark them as loaded
+      profiles.forEach(profile => {
+        setImagesLoaded(prev => ({...prev, [profile.id]: true}));
       });
-      
-      try {
-        await Promise.all(imageLoadPromises);
-      } catch (error) {
-        console.log('Error preloading images:', error);
-        profiles.forEach(profile => {
-          setImagesLoaded(prev => ({...prev, [profile.id]: true}));
-        });
-      }
       
       setTimeout(() => {
         setInitialLoading(false);
