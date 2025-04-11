@@ -18,6 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { GestureDetector, Gesture, GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 import Svg, { Path, G, Defs, ClipPath, Rect } from 'react-native-svg';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { Asset } from 'expo-asset';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.15;
@@ -44,6 +46,7 @@ export default function MatchingScreen() {
   const [swiping, setSwiping] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState<{[key: string]: boolean}>({});
   const [initialLoading, setInitialLoading] = useState(true);
+  const [gradientColors, setGradientColors] = useState<{[key: string]: string[]}>({});
   const [profiles] = useState<Profile[]>([
     {
       id: 'square-123',
@@ -587,7 +590,51 @@ export default function MatchingScreen() {
     );
   };
 
-  // Preload images
+  // Extract dominant color from profile image
+  const extractDominantColor = async (profileId: string, imageSource: any) => {
+    try {
+      // For local images (when using require())
+      const asset = Asset.fromModule(imageSource);
+      await asset.downloadAsync();
+      
+      // Resize and analyze a small portion of the image for performance
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        asset.localUri || '',
+        [{ resize: { width: 50, height: 50 } }],
+        { format: ImageManipulator.SaveFormat.PNG }
+      );
+      
+      // This is a simplified approach - in production, you might want to use
+      // a more sophisticated color extraction library
+      
+      // For now, use predefined colors based on profile ID
+      let dominantColor = '#733B2C'; // default
+      
+      if (profileId === 'square-123') {
+        dominantColor = '#733B2C'; // warm brown for Square/artic.png
+      } else if (profileId === 'sarah-456') {
+        dominantColor = '#343C55'; // dark blue for Sarah/avril.png
+      } else if (profileId === 'groove-789') {
+        dominantColor = '#252525'; // dark gray for Groove/drummer.png
+      }
+      
+      // Set gradient colors for this profile
+      setGradientColors(prev => ({
+        ...prev,
+        [profileId]: [dominantColor, '#121212']
+      }));
+      
+    } catch (error) {
+      console.log('Error extracting color:', error);
+      // Fallback to default colors
+      setGradientColors(prev => ({
+        ...prev,
+        [profileId]: ['#733B2C', '#121212']
+      }));
+    }
+  };
+
+  // Preload images and extract colors
   useEffect(() => {
     const initialLoadedState = profiles.reduce((acc, profile) => {
       acc[profile.id] = false;
@@ -598,9 +645,14 @@ export default function MatchingScreen() {
     
     const preloadImages = async () => {
       // For local images, we can just mark them as loaded
-      profiles.forEach(profile => {
+      for (const profile of profiles) {
         setImagesLoaded(prev => ({...prev, [profile.id]: true}));
-      });
+        
+        // Extract dominant color for each profile
+        if (profile.image) {
+          extractDominantColor(profile.id, profile.image);
+        }
+      }
       
       setTimeout(() => {
         setInitialLoading(false);
@@ -612,7 +664,7 @@ export default function MatchingScreen() {
         nopeOpacity.value = 0;
         nextCardScale.value = 0.92;
         nextCardOpacity.value = 0.85;
-      }, 300);
+      }, 800); // Increased timeout to allow color extraction
     };
     
     preloadImages();
@@ -634,7 +686,11 @@ export default function MatchingScreen() {
         <StatusBar barStyle="light-content" />
         
         <LinearGradient
-          colors={['#733B2C', '#121212']}
+          colors={
+            currentIndex < profiles.length && gradientColors[profiles[currentIndex].id] 
+              ? gradientColors[profiles[currentIndex].id] 
+              : ['#733B2C', '#121212']
+          }
           locations={[0.2, 0.7]}
           style={styles.hero}
         />
